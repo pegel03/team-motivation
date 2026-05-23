@@ -64,8 +64,7 @@ export const INITIAL_TEAMS: Team[] = [
     memberEmails: [
       'teamadmin.maria@logius.nl',
       'developer.bob@logius.nl',
-      'support.elise@logius.nl',
-      'pegel03@gmail.com' // pegel03 belongs for simulation, but is hidden in UI
+      'support.elise@logius.nl'
     ],
     teamAdminEmails: ['teamadmin.maria@logius.nl'],
     dashboardActive: true // Default active to showcase immediate state
@@ -133,7 +132,7 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
   }
 ];
 
-export const GLOBAL_ADMIN_EMAIL = 'pegel03@gmail.com';
+export const GLOBAL_ADMIN_EMAIL = (import.meta as any).env.VITE_GLOBAL_ADMIN_EMAIL || 'globaladmin@logius.nl';
 
 // Local storage keys
 const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!

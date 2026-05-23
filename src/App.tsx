@@ -131,10 +131,18 @@ export default function App() {
   const handleSelfRemoveMember = (email: string) => {
     if (!activeTeam) return;
     if (confirm(`Sluit ${email} uit van dit team?`)) {
+      const nextMembers = activeTeam.memberEmails.filter(m => m.toLowerCase().trim() !== email.toLowerCase().trim());
+      let nextAdmins = activeTeam.teamAdminEmails.filter(m => m.toLowerCase().trim() !== email.toLowerCase().trim());
+      
+      // Automatically promote first next team member if the last team admin is removed
+      if (nextAdmins.length === 0 && nextMembers.length > 0) {
+        nextAdmins = [nextMembers[0]];
+      }
+
       const updatedTeam = {
         ...activeTeam,
-        memberEmails: activeTeam.memberEmails.filter(m => m.toLowerCase().trim() !== email.toLowerCase().trim()),
-        teamAdminEmails: activeTeam.teamAdminEmails.filter(m => m.toLowerCase().trim() !== email.toLowerCase().trim())
+        memberEmails: nextMembers,
+        teamAdminEmails: nextAdmins
       };
       
       handleUpdateSelfTeam(updatedTeam);
@@ -147,12 +155,14 @@ export default function App() {
     
     let nextAdmins = [...activeTeam.teamAdminEmails];
     if (currentlyAdmin) {
-      // Prevent deleting self unless there's at least someone else as admin
-      if (email.toLowerCase().trim() === activeUser?.toLowerCase().trim() && activeTeam.teamAdminEmails.length === 1) {
-        alert('U kunt uzelf niet ontheffen als enige teambeheerder.');
-        return;
-      }
       nextAdmins = nextAdmins.filter(ad => ad.toLowerCase().trim() !== email.toLowerCase().trim());
+      // Automatically promote first next team member if the last team admin steps down
+      if (nextAdmins.length === 0 && activeTeam.memberEmails.length > 0) {
+        const firstNextMember = activeTeam.memberEmails.find(m => m.toLowerCase().trim() !== email.toLowerCase().trim()) || activeTeam.memberEmails[0];
+        if (firstNextMember) {
+          nextAdmins = [firstNextMember];
+        }
+      }
     } else {
       nextAdmins.push(email);
     }
@@ -231,7 +241,7 @@ export default function App() {
             <LoginForm onLoginSuccess={handleLogin} />
           </div>
         ) : isGlobalAdmin ? (
-          /* Case 2: Global administrator (pegel03@gmail.com is hidden/masked) */
+          /* Case 2: Global administrator */
           <div className="space-y-4">
             <AdminPanel 
               teams={teams} 
@@ -449,12 +459,11 @@ export default function App() {
                       <div className="space-y-3 pt-4 border-t border-slate-50">
                         <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest">Leden & Beheerderslijst</label>
                         
-                        {/* Privacy: Filter out pegel03@gmail.com visually from settings list */}
+                        {/* Privacy: Filter out the global administrator email from lists */}
                         {(() => {
                           const list = activeTeam.memberEmails.filter(
                             (m) =>
-                              m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim() &&
-                              m.toLowerCase().trim() !== 'pegel03@gmail'
+                              m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim()
                           );
 
                           if (list.length === 0) {

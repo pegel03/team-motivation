@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Question, Team, Submission } from '../types';
-import { QUESTIONS, saveSubmissions, loadSubmissions } from '../data';
+import { QUESTIONS, saveSubmissions, loadSubmissions, GLOBAL_ADMIN_EMAIL } from '../data';
 import { CheckCircle2, AlertCircle, RefreshCw, BarChart, ChevronRight, User } from 'lucide-react';
 
 interface SurveyFormProps {
@@ -23,7 +23,7 @@ export default function SurveyForm({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isTeamAdmin = Array.isArray(userTeam.teamAdminEmails) && userTeam.teamAdminEmails.map(ad => ad.toLowerCase()).includes(currentUserEmail.toLowerCase());
-  const displayEmail = currentUserEmail === 'pegel03@gmail.com' ? "Systeembeheerder" : currentUserEmail;
+  const displayEmail = currentUserEmail === GLOBAL_ADMIN_EMAIL ? "Systeembeheerder" : currentUserEmail;
 
   // Check if user has already submitted on this session
   useEffect(() => {

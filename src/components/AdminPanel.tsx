@@ -104,10 +104,18 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
     if (confirm(`Sluit ${email} uit van dit team?`)) {
       const updated = teams.map(t => {
         if (t.id === teamId) {
+          const nextMembers = t.memberEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
+          let nextAdmins = t.teamAdminEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
+          
+          // Automatically promote the first next team member if the last team admin is removed
+          if (nextAdmins.length === 0 && nextMembers.length > 0) {
+            nextAdmins = [nextMembers[0]];
+          }
+
           return {
             ...t,
-            memberEmails: t.memberEmails.filter(m => m.toLowerCase() !== email.toLowerCase()),
-            teamAdminEmails: t.teamAdminEmails.filter(m => m.toLowerCase() !== email.toLowerCase())
+            memberEmails: nextMembers,
+            teamAdminEmails: nextAdmins
           };
         }
         return t;
@@ -121,9 +129,18 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
     const updated = teams.map(t => {
       if (t.id === teamId) {
         const isCurrentlyAdmin = t.teamAdminEmails.map(ad => ad.toLowerCase()).includes(email.toLowerCase());
-        const nextAdmins = isCurrentlyAdmin
+        let nextAdmins = isCurrentlyAdmin
           ? t.teamAdminEmails.filter(ad => ad.toLowerCase() !== email.toLowerCase())
           : [...t.teamAdminEmails, email];
+
+        // Automatically promote the first next team member if the last team admin steps down
+        if (nextAdmins.length === 0 && t.memberEmails.length > 0) {
+          const firstNextMember = t.memberEmails.find(m => m.toLowerCase() !== email.toLowerCase()) || t.memberEmails[0];
+          if (firstNextMember) {
+            nextAdmins = [firstNextMember];
+          }
+        }
+
         return { ...t, teamAdminEmails: nextAdmins };
       }
       return t;
@@ -204,11 +221,10 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
             {teams.map((team) => {
               const shareUrl = `${window.location.origin}${window.location.pathname}?teamId=${team.id}`;
               
-              // Privacy filter: Hide GLOBAL_ADMIN_EMAIL or "pegel03@gmail" from visual members list and admin lists
+              // Privacy filter: Hide GLOBAL_ADMIN_EMAIL from visual members list and admin lists
               const visibleMembers = team.memberEmails.filter(
                 (m) =>
-                  m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim() &&
-                  m.toLowerCase().trim() !== 'pegel03@gmail'
+                  m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim()
               );
 
               return (
