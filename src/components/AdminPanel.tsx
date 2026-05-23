@@ -3,7 +3,7 @@ import { Team } from '../types';
 import { 
   Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle, Database, RefreshCw
 } from 'lucide-react';
-import { saveTeams, GLOBAL_ADMIN_EMAIL, isDemoDisabled, setDemoDisabledFlag } from '../data';
+import { saveTeams, GLOBAL_ADMIN_EMAIL, isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -17,6 +17,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
   const [editingTeamName, setEditingTeamName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState<Record<string, string>>({}); // teamId -> text
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [sandboxHidden, setSandboxHidden] = useState(isSandboxHidden());
 
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,6 +418,26 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
                 Demomodus Actief (Met Testdata & Gebruikers)
               </span>
             )}
+          </div>
+
+          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60">
+            <span className="font-semibold text-slate-700">Rol-wisselaar (Simulatiepaneel r.o.):</span>
+            <button
+              id="btn-toggle-sandbox"
+              onClick={() => {
+                const nextHidden = !sandboxHidden;
+                setSandboxHiddenFlag(nextHidden);
+                setSandboxHidden(nextHidden);
+                window.dispatchEvent(new Event('storage'));
+              }}
+              className={`px-2.5 py-1 text-xs border font-bold rounded-lg transition-all cursor-pointer ${
+                sandboxHidden
+                  ? 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+                  : 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700'
+              }`}
+            >
+              {sandboxHidden ? 'Uitgezet / Verborgen' : 'Aan / Zichtbaar'}
+            </button>
           </div>
 
           <div className="flex flex-wrap gap-3 pt-2">

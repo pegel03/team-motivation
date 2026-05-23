@@ -140,6 +140,7 @@ const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new quest
 const SUBMISSIONS_KEY = 'logius_submissions_data_v2';
 const ACTIVE_USER_KEY = 'logius_active_user_v2';
 const DEMO_DISABLED_KEY = 'logius_demo_disabled';
+const HIDE_SANDBOX_KEY = 'logius_hide_sandbox';
 
 export const isDemoDisabled = (): boolean => {
   // Check both Vite environment variable and localStorage flag
@@ -153,6 +154,20 @@ export const setDemoDisabledFlag = (disabled: boolean): void => {
     localStorage.setItem(DEMO_DISABLED_KEY, 'true');
   } else {
     localStorage.removeItem(DEMO_DISABLED_KEY);
+  }
+};
+
+export const isSandboxHidden = (): boolean => {
+  const isEnvHidden = (import.meta as any).env.VITE_HIDE_SANDBOX === 'true';
+  const isLocalHidden = localStorage.getItem(HIDE_SANDBOX_KEY) === 'true';
+  return isEnvHidden || isLocalHidden || isDemoDisabled();
+};
+
+export const setSandboxHiddenFlag = (hidden: boolean): void => {
+  if (hidden) {
+    localStorage.setItem(HIDE_SANDBOX_KEY, 'true');
+  } else {
+    localStorage.removeItem(HIDE_SANDBOX_KEY);
   }
 };
 

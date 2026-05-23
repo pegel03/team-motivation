@@ -7,7 +7,8 @@ import {
   saveActiveUser, 
   saveTeams,
   GLOBAL_ADMIN_EMAIL,
-  QUESTIONS
+  QUESTIONS,
+  isSandboxHidden
 } from './data';
 import Navigation from './components/Navigation';
 import LoginForm from './components/LoginForm';
@@ -518,11 +519,13 @@ export default function App() {
       </main>
 
       {/* Floating Interactive Role Sandbox Panel */}
-      <SandboxSelector 
-        currentEmail={activeUser} 
-        onSwitchUser={handleSwitchUserSandbox}
-        teams={teams}
-      />
+      {!isSandboxHidden() && (
+        <SandboxSelector 
+          currentEmail={activeUser} 
+          onSwitchUser={handleSwitchUserSandbox}
+          teams={teams}
+        />
+      )}
     </div>
   );
 }
