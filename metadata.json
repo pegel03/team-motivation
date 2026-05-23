@@ -1,0 +1,6 @@
+{
+  "name": "Team motivatie checker",
+  "description": "Een interactieve enquete-applicatie voor teams met real-time dashboards, score-geschiedenis en domeinrestricties voor Logius.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
