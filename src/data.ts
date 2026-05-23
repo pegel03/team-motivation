@@ -139,10 +139,30 @@ export const GLOBAL_ADMIN_EMAIL = 'pegel03@gmail.com';
 const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!
 const SUBMISSIONS_KEY = 'logius_submissions_data_v2';
 const ACTIVE_USER_KEY = 'logius_active_user_v2';
+const DEMO_DISABLED_KEY = 'logius_demo_disabled';
+
+export const isDemoDisabled = (): boolean => {
+  // Check both Vite environment variable and localStorage flag
+  const isEnvDisabled = (import.meta as any).env.VITE_NO_MOCK_DATA === 'true';
+  const isLocalDisabled = localStorage.getItem(DEMO_DISABLED_KEY) === 'true';
+  return isEnvDisabled || isLocalDisabled;
+};
+
+export const setDemoDisabledFlag = (disabled: boolean): void => {
+  if (disabled) {
+    localStorage.setItem(DEMO_DISABLED_KEY, 'true');
+  } else {
+    localStorage.removeItem(DEMO_DISABLED_KEY);
+  }
+};
 
 export const loadTeams = (): Team[] => {
   const teamsJson = localStorage.getItem(TEAMS_KEY);
   if (!teamsJson) {
+    if (isDemoDisabled()) {
+      localStorage.setItem(TEAMS_KEY, JSON.stringify([]));
+      return [];
+    }
     localStorage.setItem(TEAMS_KEY, JSON.stringify(INITIAL_TEAMS));
     return INITIAL_TEAMS;
   }
@@ -160,7 +180,7 @@ export const loadTeams = (): Team[] => {
       };
     });
   } catch {
-    return INITIAL_TEAMS;
+    return isDemoDisabled() ? [] : INITIAL_TEAMS;
   }
 };
 
@@ -173,13 +193,17 @@ export const saveTeams = (teams: Team[]): void => {
 export const loadSubmissions = (): Submission[] => {
   const subJson = localStorage.getItem(SUBMISSIONS_KEY);
   if (!subJson) {
+    if (isDemoDisabled()) {
+      localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([]));
+      return [];
+    }
     localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(INITIAL_SUBMISSIONS));
     return INITIAL_SUBMISSIONS;
   }
   try {
     return JSON.parse(subJson);
   } catch {
-    return INITIAL_SUBMISSIONS;
+    return isDemoDisabled() ? [] : INITIAL_SUBMISSIONS;
   }
 };
 
