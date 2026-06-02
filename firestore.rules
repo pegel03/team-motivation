@@ -37,15 +37,15 @@ service cloud.firestore {
       allow get: if true; // Publicly get the team name for shared URL / invites
       allow list: if isSignedIn() && (
         isGlobalAdmin() || 
-        currentUserEmail() in resource.data.memberEmails || 
-        currentUserEmail() in resource.data.teamAdminEmails
+        request.auth.token.email in resource.data.memberEmails || 
+        request.auth.token.email in resource.data.teamAdminEmails
       );
       
       allow create: if isSignedIn() && isGlobalAdmin() && isValidTeam(incoming());
       
       allow update: if isSignedIn() && (
         (isGlobalAdmin() && isValidTeam(incoming())) ||
-        (currentUserEmail() in existing().teamAdminEmails && isValidTeam(incoming()) && (
+        (request.auth.token.email in existing().teamAdminEmails && isValidTeam(incoming()) && (
           incoming().id == existing().id
         ))
       );
@@ -65,19 +65,19 @@ service cloud.firestore {
     match /submissions/{submissionId} {
       allow get: if isSignedIn() && (
         isGlobalAdmin() ||
-        resource.data.userEmail.lower() == currentUserEmail() ||
-        currentUserEmail() in resource.data.allowedViewerEmails
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email in resource.data.allowedViewerEmails
       );
       
       allow list: if isSignedIn() && (
         isGlobalAdmin() ||
-        resource.data.userEmail.lower() == currentUserEmail() ||
-        currentUserEmail() in resource.data.allowedViewerEmails
+        resource.data.userEmail == request.auth.token.email ||
+        request.auth.token.email in resource.data.allowedViewerEmails
       );
       
       allow create: if isSignedIn() 
         && isValidSubmission(incoming()) 
-        && incoming().userEmail.lower() == currentUserEmail()
+        && incoming().userEmail == request.auth.token.email
         && exists(/databases/$(database)/documents/teams/$(incoming().teamId));
         
       allow update: if false; // Submissions are immutable

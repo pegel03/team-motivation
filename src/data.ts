@@ -132,7 +132,7 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
   }
 ];
 
-export const GLOBAL_ADMIN_EMAIL = (import.meta as any).env.VITE_GLOBAL_ADMIN_EMAIL || '';
+export const GLOBAL_ADMIN_EMAIL = (import.meta as any).env.VITE_GLOBAL_ADMIN_EMAIL || 'pegel03@gmail.com';
 
 // Local storage keys
 const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!
