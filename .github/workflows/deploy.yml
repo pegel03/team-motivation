@@ -30,6 +30,7 @@ jobs:
         env:
           VITE_BASE_PATH: /team-motivation/
           VITE_NO_MOCK_DATA: 'true' # Set to 'true' for a clean empty site, or 'false' to keep demo data
+          VITE_GLOBAL_ADMIN_EMAIL: ${{ secrets.VITE_GLOBAL_ADMIN_EMAIL }}
 
       - name: Deploy 🚀
         uses: JamesIves/github-pages-deploy-action@v4
