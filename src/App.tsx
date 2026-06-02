@@ -10,7 +10,7 @@ import {
   QUESTIONS,
   isSandboxHidden
 } from './data';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, auth } from './firebase';
 import { 
   testConnection, 
@@ -44,12 +44,15 @@ export default function App() {
   // Load state on mount
   useEffect(() => {
     testConnection();
-    seedInitialDataIfEmpty();
 
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user && user.email) {
         setActiveUser(user.email);
         localStorage.setItem('logius_active_user_v2', user.email);
+        const normalized = user.email.toLowerCase().trim();
+        if (GLOBAL_ADMIN_EMAIL && normalized === GLOBAL_ADMIN_EMAIL.toLowerCase().trim()) {
+          seedInitialDataIfEmpty().catch(console.error);
+        }
       } else {
         setActiveUser(null);
         localStorage.removeItem('logius_active_user_v2');
@@ -75,29 +78,111 @@ export default function App() {
       return;
     }
 
-    const unsubscribeTeams = onSnapshot(collection(db, 'teams'), (snapshot) => {
-      const loadedTeams: Team[] = [];
-      snapshot.forEach((doc) => {
-        loadedTeams.push(doc.data() as Team);
-      });
-      setTeams(loadedTeams);
-    }, (error) => {
-      console.error('Teams subscription error:', error);
-    });
+    const normalizedEmail = activeUser.toLowerCase().trim();
+    const isUserGlobalAdmin = GLOBAL_ADMIN_EMAIL && normalizedEmail === GLOBAL_ADMIN_EMAIL.toLowerCase().trim();
 
-    const unsubscribeSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot) => {
-      const loadedSubs: Submission[] = [];
-      snapshot.forEach((doc) => {
-        loadedSubs.push(doc.data() as Submission);
+    let unsubTeams1 = () => {};
+    let unsubTeams2 = () => {};
+    let unsubSubs1 = () => {};
+    let unsubSubs2 = () => {};
+
+    if (isUserGlobalAdmin) {
+      // Global admin can read everything
+      unsubTeams1 = onSnapshot(collection(db, 'teams'), (snapshot) => {
+        const loadedTeams: Team[] = [];
+        snapshot.forEach((doc) => {
+          loadedTeams.push(doc.data() as Team);
+        });
+        setTeams(loadedTeams);
+      }, (error) => {
+        console.error('Teams admin subscription error:', error);
       });
-      setSubmissions(loadedSubs);
-    }, (error) => {
-      console.error('Submissions subscription error:', error);
-    });
+
+      unsubSubs1 = onSnapshot(collection(db, 'submissions'), (snapshot) => {
+        const loadedSubs: Submission[] = [];
+        snapshot.forEach((doc) => {
+          loadedSubs.push(doc.data() as Submission);
+        });
+        setSubmissions(loadedSubs);
+      }, (error) => {
+        console.error('Submissions admin subscription error:', error);
+      });
+    } else {
+      // Regular user queries
+      // 1. Teams: Fetch where user is a member OR where user is an admin
+      const qMembers = query(collection(db, 'teams'), where('memberEmails', 'array-contains', normalizedEmail));
+      const qAdmins = query(collection(db, 'teams'), where('teamAdminEmails', 'array-contains', normalizedEmail));
+
+      let memberTeamsList: Team[] = [];
+      let adminTeamsList: Team[] = [];
+
+      const updateTeams = () => {
+        const mergedMap = new Map<string, Team>();
+        memberTeamsList.forEach(t => mergedMap.set(t.id, t));
+        adminTeamsList.forEach(t => mergedMap.set(t.id, t));
+        setTeams(Array.from(mergedMap.values()));
+      };
+
+      unsubTeams1 = onSnapshot(qMembers, (snapshot) => {
+        memberTeamsList = [];
+        snapshot.forEach(doc => {
+          memberTeamsList.push(doc.data() as Team);
+        });
+        updateTeams();
+      }, (error) => {
+        console.error('Teams members subscription error:', error);
+      });
+
+      unsubTeams2 = onSnapshot(qAdmins, (snapshot) => {
+        adminTeamsList = [];
+        snapshot.forEach(doc => {
+          adminTeamsList.push(doc.data() as Team);
+        });
+        updateTeams();
+      }, (error) => {
+        console.error('Teams admin sub subscription error:', error);
+      });
+
+      // 2. Submissions: Fetch where user is allowed to view (e.g. member/admin) OR created by the user
+      const qAllowed = query(collection(db, 'submissions'), where('allowedViewerEmails', 'array-contains', normalizedEmail));
+      const qSelf = query(collection(db, 'submissions'), where('userEmail', '==', activeUser));
+
+      let allowedSubsList: Submission[] = [];
+      let selfSubsList: Submission[] = [];
+
+      const updateSubmissions = () => {
+        const mergedMap = new Map<string, Submission>();
+        allowedSubsList.forEach(s => mergedMap.set(s.id, s));
+        selfSubsList.forEach(s => mergedMap.set(s.id, s));
+        setSubmissions(Array.from(mergedMap.values()));
+      };
+
+      unsubSubs1 = onSnapshot(qAllowed, (snapshot) => {
+        allowedSubsList = [];
+        snapshot.forEach(doc => {
+          allowedSubsList.push(doc.data() as Submission);
+        });
+        updateSubmissions();
+      }, (error) => {
+        console.error('Submissions allowed subscription error:', error);
+      });
+
+      unsubSubs2 = onSnapshot(qSelf, (snapshot) => {
+        selfSubsList = [];
+        snapshot.forEach(doc => {
+          selfSubsList.push(doc.data() as Submission);
+        });
+        updateSubmissions();
+      }, (error) => {
+        console.error('Submissions self subscription error:', error);
+      });
+    }
 
     return () => {
-      unsubscribeTeams();
-      unsubscribeSubmissions();
+      unsubTeams1();
+      unsubTeams2();
+      unsubSubs1();
+      unsubSubs2();
     };
   }, [activeUser]);
 
