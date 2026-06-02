@@ -3,7 +3,8 @@ import { Team } from '../types';
 import { 
   Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle, Database, RefreshCw
 } from 'lucide-react';
-import { saveTeams, GLOBAL_ADMIN_EMAIL, isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
+import { GLOBAL_ADMIN_EMAIL, isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
+import { saveTeamDoc, deleteTeamDoc } from '../firestoreService';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -32,17 +33,13 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
       dashboardActive: false
     };
 
-    const updated = [...teams, newTeam];
-    onTeamsUpdated(updated);
-    saveTeams(updated);
+    saveTeamDoc(newTeam).catch(console.error);
     setNewTeamName('');
   };
 
   const handleDeleteTeam = (id: string) => {
     if (confirm('Weet u zeker dat u dit team wilt verwijderen?')) {
-      const updated = teams.filter(t => t.id !== id);
-      onTeamsUpdated(updated);
-      saveTeams(updated);
+      deleteTeamDoc(id).catch(console.error);
     }
   };
 
@@ -53,14 +50,10 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
 
   const handleSaveEditName = (id: string) => {
     if (!editingTeamName.trim()) return;
-    const updated = teams.map(t => {
-      if (t.id === id) {
-        return { ...t, name: editingTeamName.trim() };
-      }
-      return t;
-    });
-    onTeamsUpdated(updated);
-    saveTeams(updated);
+    const team = teams.find(t => t.id === id);
+    if (!team) return;
+    const updatedTeam = { ...team, name: editingTeamName.trim() };
+    saveTeamDoc(updatedTeam).catch(console.error);
     setEditingTeamId(null);
   };
 
@@ -69,8 +62,8 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
     if (!email) return;
 
     // Direct domain validation
-    if (!email.endsWith('@logius.nl') && email !== GLOBAL_ADMIN_EMAIL) {
-      alert('Fout: E-mailadres moet binnen het logius.nl domein vallen.');
+    if (!email.includes('@')) {
+      alert('Fout: Voer een geldig e-mailadres in met een @-teken.');
       return;
     }
 
@@ -82,71 +75,57 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
       return;
     }
 
-    const updated = teams.map(t => {
-      if (t.id === teamId) {
-        // If there are no admins yet, designate this user as the first team admin
-        const noAdminsYet = t.teamAdminEmails.length === 0;
-        return {
-          ...t,
-          memberEmails: [...t.memberEmails, email],
-          teamAdminEmails: noAdminsYet ? [email] : t.teamAdminEmails
-        };
-      }
-      return t;
-    });
+    // If there are no admins yet, designate this user as the first team admin
+    const noAdminsYet = team.teamAdminEmails.length === 0;
+    const updatedTeam = {
+      ...team,
+      memberEmails: [...team.memberEmails, email],
+      teamAdminEmails: noAdminsYet ? [email] : team.teamAdminEmails
+    };
 
-    onTeamsUpdated(updated);
-    saveTeams(updated);
+    saveTeamDoc(updatedTeam).catch(console.error);
     setNewMemberEmail({ ...newMemberEmail, [teamId]: '' });
   };
 
   const handleRemoveMember = (teamId: string, email: string) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
     if (confirm(`Sluit ${email} uit van dit team?`)) {
-      const updated = teams.map(t => {
-        if (t.id === teamId) {
-          const nextMembers = t.memberEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
-          let nextAdmins = t.teamAdminEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
-          
-          // Automatically promote the first next team member if the last team admin is removed
-          if (nextAdmins.length === 0 && nextMembers.length > 0) {
-            nextAdmins = [nextMembers[0]];
-          }
+      const nextMembers = team.memberEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
+      let nextAdmins = team.teamAdminEmails.filter(m => m.toLowerCase() !== email.toLowerCase());
+      
+      // Automatically promote the first next team member if the last team admin is removed
+      if (nextAdmins.length === 0 && nextMembers.length > 0) {
+        nextAdmins = [nextMembers[0]];
+      }
 
-          return {
-            ...t,
-            memberEmails: nextMembers,
-            teamAdminEmails: nextAdmins
-          };
-        }
-        return t;
-      });
-      onTeamsUpdated(updated);
-      saveTeams(updated);
+      const updatedTeam = {
+        ...team,
+        memberEmails: nextMembers,
+        teamAdminEmails: nextAdmins
+      };
+      saveTeamDoc(updatedTeam).catch(console.error);
     }
   };
 
   const handleToggleTeamAdmin = (teamId: string, email: string) => {
-    const updated = teams.map(t => {
-      if (t.id === teamId) {
-        const isCurrentlyAdmin = t.teamAdminEmails.map(ad => ad.toLowerCase()).includes(email.toLowerCase());
-        let nextAdmins = isCurrentlyAdmin
-          ? t.teamAdminEmails.filter(ad => ad.toLowerCase() !== email.toLowerCase())
-          : [...t.teamAdminEmails, email];
+    const team = teams.find(t => t.id === teamId);
+    if (!team) return;
+    const isCurrentlyAdmin = team.teamAdminEmails.map(ad => ad.toLowerCase()).includes(email.toLowerCase());
+    let nextAdmins = isCurrentlyAdmin
+      ? team.teamAdminEmails.filter(ad => ad.toLowerCase() !== email.toLowerCase())
+      : [...team.teamAdminEmails, email];
 
-        // Automatically promote the first next team member if the last team admin steps down
-        if (nextAdmins.length === 0 && t.memberEmails.length > 0) {
-          const firstNextMember = t.memberEmails.find(m => m.toLowerCase() !== email.toLowerCase()) || t.memberEmails[0];
-          if (firstNextMember) {
-            nextAdmins = [firstNextMember];
-          }
-        }
-
-        return { ...t, teamAdminEmails: nextAdmins };
+    // Automatically promote the first next team member if the last team admin steps down
+    if (nextAdmins.length === 0 && team.memberEmails.length > 0) {
+      const firstNextMember = team.memberEmails.find(m => m.toLowerCase() !== email.toLowerCase()) || team.memberEmails[0];
+      if (firstNextMember) {
+        nextAdmins = [firstNextMember];
       }
-      return t;
-    });
-    onTeamsUpdated(updated);
-    saveTeams(updated);
+    }
+
+    const updatedTeam = { ...team, teamAdminEmails: nextAdmins };
+    saveTeamDoc(updatedTeam).catch(console.error);
   };
 
   const handleCopyLink = (teamId: string) => {
@@ -328,7 +307,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
                       <input
                         id={`add-member-input-${team.id}`}
                         type="email"
-                        placeholder="lid@logius.nl"
+                        placeholder="collega@mail.com"
                         value={newMemberEmail[team.id] || ''}
                         onChange={(e) => setNewMemberEmail({ ...newMemberEmail, [team.id]: e.target.value })}
                         className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-indigo-600 transition-all font-sans"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Question, Team, Submission } from '../types';
 import { QUESTIONS, saveSubmissions, loadSubmissions, GLOBAL_ADMIN_EMAIL } from '../data';
+import { addSubmissionDoc } from '../firestoreService';
 import { CheckCircle2, AlertCircle, RefreshCw, BarChart, ChevronRight, User } from 'lucide-react';
 
 interface SurveyFormProps {
@@ -97,7 +98,7 @@ export default function SurveyForm({
     const nextSubmissions = [...filtered, newSubmission];
 
     onSubmissionSuccess(nextSubmissions);
-    saveSubmissions(nextSubmissions);
+    addSubmissionDoc(newSubmission, userTeam).catch(console.error);
 
     // Calculate score for display
     if (!isSkipped) {

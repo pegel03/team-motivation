@@ -16,10 +16,10 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
   const validateDomain = (emailVal: string): boolean => {
     const trimmed = emailVal.toLowerCase().trim();
-    if (trimmed === GLOBAL_ADMIN_EMAIL.toLowerCase()) {
+    if (GLOBAL_ADMIN_EMAIL && trimmed === GLOBAL_ADMIN_EMAIL.toLowerCase()) {
       return true;
     }
-    return trimmed.endsWith('@logius.nl');
+    return trimmed.includes('@');
   };
 
   const handleAction = (e: React.FormEvent) => {
@@ -35,7 +35,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     }
 
     if (!validateDomain(targetEmail)) {
-      setError('Toegang geweigerd. U moet inloggen met een e-mailadres binnen het logius.nl domein.');
+      setError('Voer a.u.b. een geldig e-mailadres in.');
       return;
     }
 
@@ -155,6 +155,15 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         </div>
 
         {/* Status Messages */}
+        {!GLOBAL_ADMIN_EMAIL && (
+          <div id="login-admin-missing-alert" className="mb-4 p-3.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl flex gap-2.5 items-start text-xs leading-normal font-sans">
+            <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <strong className="font-bold">Systeembeheerder niet ingesteld:</strong> Er is momenteel geen globaal e-mailadres voor de beheerder geconfigureerd in de omgevingsvariabelen (VITE_GLOBAL_ADMIN_EMAIL). Log in is mogelijk voor teamleden, maar globale beheerfuncties zijn niet toegankelijk.
+            </div>
+          </div>
+        )}
+
         {error && (
           <div id="login-error-alert" className="mb-4 p-3 bg-red-50 text-red-800 border border-red-200 rounded-lg flex gap-2.5 items-start text-xs leading-relaxed">
             <ShieldAlert size={16} className="text-red-500 shrink-0 mt-0.5" />
@@ -187,7 +196,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               />
             </div>
             <p className="text-[10px] text-slate-400 mt-1">
-              * Verplicht: e-mail moet eindigen op <strong className="text-slate-600">@logius.nl</strong>.
+              Gebruik uw zakelijke e-mailadres om toegang te krijgen tot uw teamgegevens.
             </p>
           </div>
 

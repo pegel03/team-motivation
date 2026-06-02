@@ -10,6 +10,15 @@ import {
   QUESTIONS,
   isSandboxHidden
 } from './data';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { 
+  testConnection, 
+  seedInitialDataIfEmpty, 
+  saveTeamDoc, 
+  loginWithEmailSimulated, 
+  logoutUser 
+} from './firestoreService';
 import Navigation from './components/Navigation';
 import LoginForm from './components/LoginForm';
 import AdminPanel from './components/AdminPanel';
@@ -34,9 +43,18 @@ export default function App() {
 
   // Load state on mount
   useEffect(() => {
-    setTeams(loadTeams());
-    setSubmissions(loadSubmissions());
-    setActiveUser(loadActiveUser());
+    testConnection();
+    seedInitialDataIfEmpty();
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (user && user.email) {
+        setActiveUser(user.email);
+        localStorage.setItem('logius_active_user_v2', user.email);
+      } else {
+        setActiveUser(null);
+        localStorage.removeItem('logius_active_user_v2');
+      }
+    });
 
     // Parse URL params for specific team shared links
     const params = new URLSearchParams(window.location.search);
@@ -45,35 +63,62 @@ export default function App() {
       setUrlTeamId(teamIdParam);
       setSelectedTeamId(teamIdParam);
     }
+
+    return () => unsubscribeAuth();
   }, []);
 
-  // Listen to storage events to synchronize tabs in real-time
+  // Listen to Firestore real-time updates when logged in
   useEffect(() => {
-    const syncState = () => {
-      setTeams(loadTeams());
-      setSubmissions(loadSubmissions());
-      setActiveUser(loadActiveUser());
+    if (!activeUser) {
+      setTeams([]);
+      setSubmissions([]);
+      return;
+    }
+
+    const unsubscribeTeams = onSnapshot(collection(db, 'teams'), (snapshot) => {
+      const loadedTeams: Team[] = [];
+      snapshot.forEach((doc) => {
+        loadedTeams.push(doc.data() as Team);
+      });
+      setTeams(loadedTeams);
+    }, (error) => {
+      console.error('Teams subscription error:', error);
+    });
+
+    const unsubscribeSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot) => {
+      const loadedSubs: Submission[] = [];
+      snapshot.forEach((doc) => {
+        loadedSubs.push(doc.data() as Submission);
+      });
+      setSubmissions(loadedSubs);
+    }, (error) => {
+      console.error('Submissions subscription error:', error);
+    });
+
+    return () => {
+      unsubscribeTeams();
+      unsubscribeSubmissions();
     };
-    window.addEventListener('storage', syncState);
-    return () => window.removeEventListener('storage', syncState);
-  }, []);
+  }, [activeUser]);
 
   const handleLogin = (email: string) => {
-    setActiveUser(email);
-    saveActiveUser(email);
-    // Reset tabs
-    setActiveWorkspaceTab('survey');
+    loginWithEmailSimulated(email).then(() => {
+      setActiveWorkspaceTab('survey');
+    }).catch(console.error);
   };
 
   const handleLogout = () => {
-    setActiveUser(null);
-    saveActiveUser(null);
+    logoutUser().catch(console.error);
   };
 
   const handleSwitchUserSandbox = (email: string | null) => {
-    setActiveUser(email);
-    saveActiveUser(email);
-    setActiveWorkspaceTab('survey');
+    if (email) {
+      loginWithEmailSimulated(email).then(() => {
+        setActiveWorkspaceTab('survey');
+      }).catch(console.error);
+    } else {
+      logoutUser().catch(console.error);
+    }
   };
 
   // Find all teams the logged in active user belongs to
@@ -91,7 +136,7 @@ export default function App() {
     }
   }, [activeTeam?.id]);
 
-  const isGlobalAdmin = activeUser === GLOBAL_ADMIN_EMAIL;
+  const isGlobalAdmin = !!activeUser && !!GLOBAL_ADMIN_EMAIL && activeUser.toLowerCase().trim() === GLOBAL_ADMIN_EMAIL.toLowerCase().trim();
   
   // A teamadmin is someone who is listed in activeTeam.teamAdminEmails
   const isTeamAdmin = activeTeam && Array.isArray(activeTeam.teamAdminEmails) && 
@@ -99,9 +144,7 @@ export default function App() {
 
   // Update active self team callback (updating team name, members, admins from the teamadmin's panel)
   const handleUpdateSelfTeam = (updatedTeam: Team) => {
-    const updated = teams.map(t => t.id === updatedTeam.id ? updatedTeam : t);
-    setTeams(updated);
-    saveTeams(updated);
+    saveTeamDoc(updatedTeam).catch(console.error);
   };
 
   const handleSelfAddMember = () => {
@@ -109,8 +152,8 @@ export default function App() {
     const emailToAdd = selfNewMemberInput.trim().toLowerCase();
     if (!emailToAdd) return;
 
-    if (!emailToAdd.endsWith('@logius.nl') && emailToAdd !== GLOBAL_ADMIN_EMAIL) {
-      alert('Fout: E-mailadres moet binnen het logius.nl domein vallen.');
+    if (!emailToAdd.includes('@')) {
+      alert('Fout: Voer een geldig e-mailadres in.');
       return;
     }
 
@@ -187,9 +230,7 @@ export default function App() {
 
   // Safe global update
   const handleTeamUpdate = (updatedTeam: Team) => {
-    const updated = teams.map(t => t.id === updatedTeam.id ? updatedTeam : t);
-    setTeams(updated);
-    saveTeams(updated);
+    saveTeamDoc(updatedTeam).catch(console.error);
   };
 
   const sharedUrlTeam = urlTeamId ? teams.find(t => t.id === urlTeamId) : null;
@@ -217,7 +258,7 @@ export default function App() {
                   Teampagina Uitnodiging
                 </h4>
                 <p className="text-xs text-indigo-700 leading-normal">
-                  U bent uitgenodigd om deel te nemen aan het team <strong className="text-indigo-950">{sharedUrlTeam.name}</strong>. Log hieronder in met uw logius.nl e-mailadres om uw scores door te geven.
+                  U bent uitgenodigd om deel te nemen aan het team <strong className="text-indigo-950">{sharedUrlTeam.name}</strong>. Log hieronder in met uw e-mailadres om uw scores door te geven.
                 </p>
               </div>
             </div>
@@ -249,7 +290,7 @@ export default function App() {
             />
           </div>
         ) : (
-          /* Case 3: Logged in logius.nl user with multiple team supports */
+          /* Case 3: Logged in user with multiple team supports */
           <div className="space-y-8">
             {memberTeams.length === 0 ? (
               /* Sub-case: Logged in, but is not attached to any team yet */
@@ -427,7 +468,7 @@ export default function App() {
                       <div className="space-y-3 pt-4 border-t border-slate-50">
                         <div>
                           <label className="block text-xs font-bold text-slate-700 uppercase tracking-widest">Lid Toevoegen aan {activeTeam.name}</label>
-                          <p className="text-[10px] text-slate-400 mt-0.5">E-mailadres moet vallen binnen het @logius.nl domein.</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Voer het e-mailadres van uw collega in.</p>
                         </div>
                         <div className="flex gap-3">
                           <input
