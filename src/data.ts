@@ -132,8 +132,6 @@ export const INITIAL_SUBMISSIONS: Submission[] = [
   }
 ];
 
-export const GLOBAL_ADMIN_EMAIL = (import.meta as any).env.VITE_GLOBAL_ADMIN_EMAIL || '';
-
 // Local storage keys
 const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!
 const SUBMISSIONS_KEY = 'logius_submissions_data_v2';

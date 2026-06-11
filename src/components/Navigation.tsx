@@ -1,19 +1,18 @@
 import { LogOut, Shield, Users, User, Compass } from 'lucide-react';
-import { GLOBAL_ADMIN_EMAIL } from '../data';
 import { Team } from '../types';
 
 interface NavigationProps {
   currentUserEmail: string | null;
   userTeam: Team | null;
   onLogout: () => void;
+  isGlobalAdmin: boolean;
 }
 
-export default function Navigation({ currentUserEmail, userTeam, onLogout }: NavigationProps) {
-  const isGlobalAdmin = currentUserEmail === GLOBAL_ADMIN_EMAIL;
+export default function Navigation({ currentUserEmail, userTeam, onLogout, isGlobalAdmin }: NavigationProps) {
   // Workaround to avoid reference error if teamAdminEmails is checked but it's on userTeam
   const teamAdminEmails = userTeam?.teamAdminEmails || [];
   const isTeamAdmin = userTeam && Array.isArray(teamAdminEmails) && teamAdminEmails.map(ad => ad.toLowerCase()).includes(currentUserEmail ? currentUserEmail.toLowerCase() : '');
-  const displayEmail = currentUserEmail === GLOBAL_ADMIN_EMAIL ? "Systeembeheerder" : currentUserEmail;
+  const displayEmail = isGlobalAdmin ? "Systeembeheerder" : currentUserEmail;
 
   return (
     <header id="logius-nav-header" className="bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-sm">

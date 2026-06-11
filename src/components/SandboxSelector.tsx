@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { RefreshCw, Shield, User, Users, ChevronRight, ChevronLeft } from 'lucide-react';
-import { GLOBAL_ADMIN_EMAIL } from '../data';
 
 interface SandboxSelectorProps {
   currentEmail: string | null;
@@ -15,7 +14,7 @@ export default function SandboxSelector({ currentEmail, onSwitchUser, teams }: S
   const personas = [
     {
       name: 'Globale Systeem Beheerder',
-      email: GLOBAL_ADMIN_EMAIL,
+      email: 'beheer@logius.nl',
       role: 'Hoofd Beheerder',
       icon: Shield,
       color: 'bg-red-50 text-red-700 border-red-200'
@@ -108,7 +107,7 @@ export default function SandboxSelector({ currentEmail, onSwitchUser, teams }: S
                       {isActive && <span className="h-1.5 w-1.5 bg-indigo-600 rounded-full animate-pulse" />}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate">
-                      {p.email === GLOBAL_ADMIN_EMAIL ? 'beheer@logius.nl' : p.email}
+                      {p.email}
                     </div>
                     <div className="text-[9px] font-semibold text-indigo-600 mt-0.5">{p.role}</div>
                   </div>

@@ -3,7 +3,7 @@ import { Team } from '../types';
 import { 
   Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle, Database, RefreshCw
 } from 'lucide-react';
-import { GLOBAL_ADMIN_EMAIL, isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
+import { isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
 import { saveTeamDoc, deleteTeamDoc } from '../firestoreService';
 
 interface AdminPanelProps {
@@ -200,11 +200,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
             {teams.map((team) => {
               const shareUrl = `${window.location.origin}${window.location.pathname}?teamId=${team.id}`;
               
-              // Privacy filter: Hide GLOBAL_ADMIN_EMAIL from visual members list and admin lists
-              const visibleMembers = team.memberEmails.filter(
-                (m) =>
-                  m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim()
-              );
+              const visibleMembers = team.memberEmails;
 
               return (
                 <div 

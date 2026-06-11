@@ -46,7 +46,7 @@ De applicatie kent drie toegangsniveaus om de privacy en autonomie van teams te 
 | :--- | :--- | :--- |
 | **Teamlid** | Enquête invullen, algemene resultaten/dashboards inzien voor de teams waar ze deel van uitmaken. | Alle reguliere ontwikkelaars, testers, analisten, scrum-members, etc. |
 | **Teambeheerder (Team Admin)** | Enquête invullen, resultaten inzien, dashboard-toegang in-/uitschakelen, de e-maillijst van de leden beheren en mede-beheerders aanstellen voor het eigen team. | Scrum Masters, Product Owners, of Team Leads. |
-| **Systeembeheerder (Global Admin)** | Volledige admin-rechten over alle teams, aanmaken van nieuwe teams, aanpassen van alle instellingen en het beheren/forceren van initialisatie en demo data. | Platformbeheerders (geconfigureerd via `VITE_GLOBAL_ADMIN_EMAIL` of aanwezig in de `admins` database collectie). |
+| **Systeembeheerder (Global Admin)** | Volledige admin-rechten over alle teams, aanmaken van nieuwe teams, aanpassen van alle instellingen en het beheren/forceren van initialisatie en demo data. | Platformbeheerders (veilig ingedeeld in de `admins` database collectie). |
 
 ---
 
@@ -55,7 +55,7 @@ De applicatie kent drie toegangsniveaus om de privacy en autonomie van teams te 
 ### Stap 1: Inloggen
 Gebruikers loggen in met hun e-mailadres (gekoppeld met Firebase Auth). Bij een succesvolle authenticatie controleert de applicatie in de Firestore database of de ingelogde gebruiker is ingedeeld in één of meerdere teams.
 
-*   *Systeembeheerder logt in*: Als u inlogt met het e-mailadres dat is toegewezen als `GLOBAL_ADMIN_EMAIL` (bijvoorbeeld `admin@domein.nl`), krijgt u direct toegang tot het volledige beheerderspaneel waarin nieuwe teams kunnen worden aangemaakt, verwijderd of gewijzigd.
+*   *Systeembeheerder logt in*: Als u inlogt met een e-mailadres geconfigureerd in de `admins` database collectie (bijvoorbeeld `beheer@logius.nl`), krijgt u direct toegang tot het volledige beheerderspaneel waarin nieuwe teams kunnen worden aangemaakt, verwijderd of gewijzigd.
 *   *Teamlid logt in*: Als het e-mailadres op de ledenlijst (`memberEmails`) of beheerderslijst (`teamAdminEmails`) van een team staat, opent direct de hoofdpagina van dat team.
 
 ### Stap 2: Motivatie Enquête invullen
@@ -90,7 +90,7 @@ De databasegegevens worden live ingeladen uit het configuratiebestand `/firebase
 Om te garanderen dat gebruikers elkaars teamgegevens of stemmen niet onrechtmatig kunnen inzien, dwingt Firebase strikte beveiligingsregels af (`firestore.rules`):
 *   Enkel ingelogde en geauthenticeerde gebruikers kunnen gegevens opvragen.
 *   Een regulier teamlid mag **alleen** teamgegevens of enquêteresultaten opvragen of indienen indien hun e-mailadres specifiek voorkomt in de arrays (`memberEmails` of `teamAdminEmails`) van dat teamdocument.
-*   De Systeembeheerder (Global Admin) wordt volledig anoniem en veilig geverifieerd via de `/admins` collectie in de database, OF via het geconfigureerde `VITE_GLOBAL_ADMIN_EMAIL` omgevingsvariabele. Hierdoor is er **geen** hardcoded emailadres meer aanwezig in de repository-bestanden. In de Firestore Security Rules is de functie `isGlobalAdmin()` beveiligd met:
+*   De Systeembeheerder (Global Admin) wordt volledig anoniem en veilig geverifieerd via de `/admins` collectie in de database. Hierdoor is er **geen** hardcoded emailadres meer aanwezig in de repository-bestanden. In de Firestore Security Rules is de functie `isGlobalAdmin()` beveiligd met:
     ```rules
     function isGlobalAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/admins/$(currentUserEmail()));
@@ -105,7 +105,7 @@ Om te garanderen dat gebruikers elkaars teamgegevens of stemmen niet onrechtmati
 ### ❓ Waarom krijgen gebruikers de melding "U bent nog niet ingedeeld"?
 Dit gebeurt als het e-mailadres waarmee de gebruiker is ingelogd **niet** voorkomt in het Firestore-teamdocument binnen de velden `memberEmails` of `teamAdminEmails`.
 
-*   **Oplossing**: Log in met uw Systeembeheerdersaccount (geconfigureerd via `VITE_GLOBAL_ADMIN_EMAIL` of ingesteld in de `admins` database collectie). Ga naar het beheerderspaneel en selecteer het team. Voeg het exacte e-mailadres van de gebruiker toe aan de ledenlijst onder "Team Leden (e-mailadressen)" en sla dit op. De gebruiker kan daarna direct inloggen en aan de slag!
+*   **Oplossing**: Log in met uw Systeembeheerdersaccount (ingesteld in de `admins` database collectie). Ga naar het beheerderspaneel en selecteer het team. Voeg het exacte e-mailadres van de gebruiker toe aan de ledenlijst onder "Team Leden (e-mailadressen)" en sla dit op. De gebruiker kan daarna direct inloggen en aan de slag!
 
 ### ❓ Hoe voorkom ik "Missing or insufficient permissions" foutmeldingen?
 Wanneer er in de browserconsole `FirebaseError: Missing or insufficient permissions` verschijnt, blokkeert Firebase de toegang omdat de opgevraagde query niet overeenkomt met de beveiligingsregels.
@@ -117,7 +117,6 @@ Wanneer er in de browserconsole `FirebaseError: Missing or insufficient permissi
 
 In het `.env` bestand of de platform-instellingen kunt u de applicatie aanpassen:
 
-*   `VITE_GLOBAL_ADMIN_EMAIL`: Het e-mailadres dat fungeert als de globale Systeembeheerder (bijv. `admin@domein.nl` of `admin@logius.nl`).
 *   `VITE_NO_MOCK_DATA`: Stel in op `true` in productieomgevingen om te voorkomen dat er demogegevens worden gesimuleerd in de lokale opslag. Dit zorgt voor een schone start.
 *   `VITE_HIDE_SANDBOX`: Indien ingesteld op `true`, wordt de snelle "Sandbox simulator" (waarmee beheerders snel kunnen schakelen tussen testaccounts om de stromen te testen) volledig verborgen voor reguliere eindgebruikers.
 

@@ -6,11 +6,10 @@ import {
   loadActiveUser, 
   saveActiveUser, 
   saveTeams,
-  GLOBAL_ADMIN_EMAIL,
   QUESTIONS,
   isSandboxHidden
 } from './data';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import { 
   testConnection, 
@@ -36,6 +35,7 @@ export default function App() {
   const [urlTeamId, setUrlTeamId] = useState<string | null>(null);
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<'survey' | 'dashboard' | 'settings'>('survey');
+  const [isGlobalAdmin, setIsGlobalAdmin] = useState(false);
 
   // Input states for Team Admin Self-CRUD
   const [selfTeamNameInput, setSelfTeamNameInput] = useState('');
@@ -49,10 +49,6 @@ export default function App() {
       if (user && user.email) {
         setActiveUser(user.email);
         localStorage.setItem('logius_active_user_v2', user.email);
-        const normalized = user.email.toLowerCase().trim();
-        if (GLOBAL_ADMIN_EMAIL && normalized === GLOBAL_ADMIN_EMAIL.toLowerCase().trim()) {
-          seedInitialDataIfEmpty().catch(console.error);
-        }
       } else {
         setActiveUser(null);
         localStorage.removeItem('logius_active_user_v2');
@@ -70,6 +66,28 @@ export default function App() {
     return () => unsubscribeAuth();
   }, []);
 
+  // Real-time listener for current user's Global Admin role in '/admins' collection
+  useEffect(() => {
+    if (!activeUser || !isFirebaseConfigured) {
+      setIsGlobalAdmin(false);
+      return;
+    }
+    const normalizedEmail = activeUser.toLowerCase().trim();
+    const adminDocRef = doc(db, 'admins', normalizedEmail);
+    const unsubscribeAdmin = onSnapshot(adminDocRef, (docSnap) => {
+      const exists = docSnap.exists();
+      setIsGlobalAdmin(exists);
+      if (exists) {
+        seedInitialDataIfEmpty().catch(console.error);
+      }
+    }, (err) => {
+      console.warn("Fout bij ophalen admin status (kan onvoldoende rechten zijn):", err);
+      setIsGlobalAdmin(false);
+    });
+
+    return () => unsubscribeAdmin();
+  }, [activeUser]);
+
   // Listen to Firestore real-time updates when logged in
   useEffect(() => {
     if (!activeUser) {
@@ -79,14 +97,13 @@ export default function App() {
     }
 
     const normalizedEmail = activeUser.toLowerCase().trim();
-    const isUserGlobalAdmin = GLOBAL_ADMIN_EMAIL && normalizedEmail === GLOBAL_ADMIN_EMAIL.toLowerCase().trim();
 
     let unsubTeams1 = () => {};
     let unsubTeams2 = () => {};
     let unsubSubs1 = () => {};
     let unsubSubs2 = () => {};
 
-    if (isUserGlobalAdmin) {
+    if (isGlobalAdmin) {
       // Global admin can read everything
       unsubTeams1 = onSnapshot(collection(db, 'teams'), (snapshot) => {
         const loadedTeams: Team[] = [];
@@ -184,7 +201,7 @@ export default function App() {
       unsubSubs1();
       unsubSubs2();
     };
-  }, [activeUser]);
+  }, [activeUser, isGlobalAdmin]);
 
   const handleLogin = (email: string) => {
     loginWithEmailSimulated(email).then(() => {
@@ -221,8 +238,6 @@ export default function App() {
     }
   }, [activeTeam?.id]);
 
-  const isGlobalAdmin = !!activeUser && !!GLOBAL_ADMIN_EMAIL && activeUser.toLowerCase().trim() === GLOBAL_ADMIN_EMAIL.toLowerCase().trim();
-  
   // A teamadmin is someone who is listed in activeTeam.teamAdminEmails
   const isTeamAdmin = activeTeam && Array.isArray(activeTeam.teamAdminEmails) && 
     activeTeam.teamAdminEmails.map(ad => ad.toLowerCase().trim()).includes(activeUser?.toLowerCase().trim() || '');
@@ -379,7 +394,6 @@ export default function App() {
                       <div>VITE_FIREBASE_APP_ID="..."</div>
                       <div className="text-[10px] text-slate-400 mt-2"># Optioneel:</div>
                       <div>VITE_FIREBASE_DATABASE_ID="..."</div>
-                      <div>VITE_GLOBAL_ADMIN_EMAIL="..."</div>
                     </div>
                   </div>
                 </div>
@@ -426,6 +440,7 @@ export default function App() {
         currentUserEmail={activeUser} 
         userTeam={activeTeam} 
         onLogout={handleLogout} 
+        isGlobalAdmin={isGlobalAdmin}
       />
 
       <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -596,6 +611,7 @@ export default function App() {
                     userTeam={activeTeam}
                     allSubmissions={submissions}
                     onSubmissionSuccess={setSubmissions}
+                    isGlobalAdmin={isGlobalAdmin}
                   />
                 )}
 
@@ -686,10 +702,7 @@ export default function App() {
                         
                         {/* Privacy: Filter out the global administrator email from lists */}
                         {(() => {
-                          const list = activeTeam.memberEmails.filter(
-                            (m) =>
-                              m.toLowerCase().trim() !== GLOBAL_ADMIN_EMAIL.toLowerCase().trim()
-                          );
+                          const list = activeTeam.memberEmails;
 
                           if (list.length === 0) {
                             return <p className="text-xs text-slate-400 italic">Er zijn momenteel geen andere leden in dit team.</p>;

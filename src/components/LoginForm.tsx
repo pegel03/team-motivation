@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { User, LogIn, Mail, ShieldAlert, CheckCircle, Info } from 'lucide-react';
-import { GLOBAL_ADMIN_EMAIL } from '../data';
 
 interface LoginFormProps {
   onLoginSuccess: (email: string) => void;
@@ -16,9 +15,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
   const validateDomain = (emailVal: string): boolean => {
     const trimmed = emailVal.toLowerCase().trim();
-    if (GLOBAL_ADMIN_EMAIL && trimmed === GLOBAL_ADMIN_EMAIL.toLowerCase()) {
-      return true;
-    }
     return trimmed.includes('@');
   };
 
@@ -83,8 +79,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         'tester.rob@logius.nl',
         'teamadmin.maria@logius.nl',
         'developer.bob@logius.nl',
-        'support.elise@logius.nl',
-        GLOBAL_ADMIN_EMAIL
+        'support.elise@logius.nl'
       ];
 
       const foundUser = registered.find((u: any) => u.email.toLowerCase() === targetEmail);
@@ -155,15 +150,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
         </div>
 
         {/* Status Messages */}
-        {!GLOBAL_ADMIN_EMAIL && (
-          <div id="login-admin-missing-alert" className="mb-4 p-3.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl flex gap-2.5 items-start text-xs leading-normal font-sans">
-            <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <strong className="font-bold">Systeembeheerder niet ingesteld:</strong> Er is momenteel geen globaal e-mailadres voor de beheerder geconfigureerd in de omgevingsvariabelen (VITE_GLOBAL_ADMIN_EMAIL). Log in is mogelijk voor teamleden, maar globale beheerfuncties zijn niet toegankelijk.
-            </div>
-          </div>
-        )}
-
         {error && (
           <div id="login-error-alert" className="mb-4 p-3 bg-red-50 text-red-800 border border-red-200 rounded-lg flex gap-2.5 items-start text-xs leading-relaxed">
             <ShieldAlert size={16} className="text-red-500 shrink-0 mt-0.5" />

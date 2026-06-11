@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Question, Team, Submission } from '../types';
-import { QUESTIONS, saveSubmissions, loadSubmissions, GLOBAL_ADMIN_EMAIL } from '../data';
+import { QUESTIONS, saveSubmissions, loadSubmissions } from '../data';
 import { addSubmissionDoc } from '../firestoreService';
 import { CheckCircle2, AlertCircle, RefreshCw, BarChart, ChevronRight, User } from 'lucide-react';
 
@@ -9,13 +9,15 @@ interface SurveyFormProps {
   userTeam: Team;
   allSubmissions: Submission[];
   onSubmissionSuccess: (updatedSubmissions: Submission[]) => void;
+  isGlobalAdmin?: boolean;
 }
 
 export default function SurveyForm({ 
   currentUserEmail, 
   userTeam, 
   allSubmissions, 
-  onSubmissionSuccess 
+  onSubmissionSuccess,
+  isGlobalAdmin = false
 }: SurveyFormProps) {
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [isSkipped, setIsSkipped] = useState(false);
@@ -24,7 +26,7 @@ export default function SurveyForm({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isTeamAdmin = Array.isArray(userTeam.teamAdminEmails) && userTeam.teamAdminEmails.map(ad => ad.toLowerCase()).includes(currentUserEmail.toLowerCase());
-  const displayEmail = currentUserEmail === GLOBAL_ADMIN_EMAIL ? "Systeembeheerder" : currentUserEmail;
+  const displayEmail = isGlobalAdmin ? "Systeembeheerder" : currentUserEmail;
 
   // Check if user has already submitted on this session
   useEffect(() => {
