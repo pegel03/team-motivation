@@ -90,19 +90,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           return;
         }
         onLoginSuccess(targetEmail);
-      } else if (initialLogiusEmails.some(e => e.toLowerCase() === targetEmail)) {
-        // Automatically allow initial mock login to simplify review testing without forcing password set
-        onLoginSuccess(targetEmail);
       } else {
-        // Direct mock create and auto-login if they did not sign up but are logius domain (very onboarding-friendly!)
-        const users = registered;
-        users.push({
-          email: targetEmail,
-          name: targetEmail.split('@')[0].replace('.', ' '),
-          password: 'pass'
-        });
-        localStorage.setItem('logius_registered_users', JSON.stringify(users));
-        onLoginSuccess(targetEmail);
+        setError('Dit e-mailadres is niet bekend. Gelieve eerst een account te registreren via het "Account registreren" tabblad.');
       }
     }
   };
@@ -233,15 +222,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             <span>{isRegister ? 'Account Aanmaken' : 'Veilig Inloggen'}</span>
           </button>
         </form>
-
-        <div className="mt-6 pt-5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500 leading-normal">
-          <div className="h-6 w-6 shrink-0 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100 font-semibold font-mono text-xs">
-            i
-          </div>
-          <div>
-            Gebruik de <strong className="text-slate-700">Rol-wisselaar</strong> rechtsonder om onmiddellijk verschillende testaccounts en scenario&apos;s met één klik te laden.
-          </div>
-        </div>
       </div>
     </div>
   );

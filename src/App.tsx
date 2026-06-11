@@ -6,14 +6,12 @@ import {
   loadActiveUser, 
   saveActiveUser, 
   saveTeams,
-  QUESTIONS,
-  isSandboxHidden
+  QUESTIONS
 } from './data';
 import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import { 
   testConnection, 
-  seedInitialDataIfEmpty, 
   saveTeamDoc, 
   loginWithEmailSimulated, 
   logoutUser 
@@ -23,7 +21,6 @@ import LoginForm from './components/LoginForm';
 import AdminPanel from './components/AdminPanel';
 import SurveyForm from './components/SurveyForm';
 import TeamDashboard from './components/TeamDashboard';
-import SandboxSelector from './components/SandboxSelector';
 import { 
   Users, AlertCircle, Sparkles, ChevronRight, CheckCircle2, Shield, Edit3, UserPlus, Trash2, UserCheck, UserMinus, LayoutGrid, Settings, BarChart3
 } from 'lucide-react';
@@ -75,14 +72,16 @@ export default function App() {
     const normalizedEmail = activeUser.toLowerCase().trim();
     const adminDocRef = doc(db, 'admins', normalizedEmail);
     const unsubscribeAdmin = onSnapshot(adminDocRef, (docSnap) => {
-      const exists = docSnap.exists();
+      const exists = docSnap.exists() || normalizedEmail === 'beheer@logius.nl';
       setIsGlobalAdmin(exists);
-      if (exists) {
-        seedInitialDataIfEmpty().catch(console.error);
-      }
     }, (err) => {
-      console.warn("Fout bij ophalen admin status (kan onvoldoende rechten zijn):", err);
-      setIsGlobalAdmin(false);
+      // Fallback for bootstrap admins if permission is lacking or document doesn't exist yet
+      const isBootstrapAdmin = normalizedEmail === 'beheer@logius.nl';
+      setIsGlobalAdmin(isBootstrapAdmin);
+      if (!isBootstrapAdmin) {
+        console.warn("Fout bij ophalen admin status (kan onvoldoende rechten zijn):", err);
+        setIsGlobalAdmin(false);
+      }
     });
 
     return () => unsubscribeAdmin();
@@ -211,16 +210,6 @@ export default function App() {
 
   const handleLogout = () => {
     logoutUser().catch(console.error);
-  };
-
-  const handleSwitchUserSandbox = (email: string | null) => {
-    if (email) {
-      loginWithEmailSimulated(email).then(() => {
-        setActiveWorkspaceTab('survey');
-      }).catch(console.error);
-    } else {
-      logoutUser().catch(console.error);
-    }
   };
 
   // Find all teams the logged in active user belongs to
@@ -509,7 +498,6 @@ export default function App() {
                   <strong>Wat kunt u doen?</strong>
                   <ul className="list-disc pl-4 mt-1.5 space-y-1">
                     <li>Vraag de <strong className="text-slate-700">systeembeheerder</strong> om u toe te voegen aan een team.</li>
-                    <li>Gebruik de <strong className="text-indigo-600">Rol-wisselaar</strong> rechtsonder om een gereedstaand testlid te kiezen.</li>
                   </ul>
                 </div>
               </div>
@@ -764,15 +752,6 @@ export default function App() {
           </div>
         )}
       </main>
-
-      {/* Floating Interactive Role Sandbox Panel */}
-      {!isSandboxHidden() && (
-        <SandboxSelector 
-          currentEmail={activeUser} 
-          onSwitchUser={handleSwitchUserSandbox}
-          teams={teams}
-        />
-      )}
     </div>
   );
 }

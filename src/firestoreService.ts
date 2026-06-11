@@ -18,7 +18,7 @@ import {
 } from 'firebase/auth';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import { Team, Submission } from './types';
-import { INITIAL_TEAMS, INITIAL_SUBMISSIONS, isDemoDisabled } from './data';
+import { isDemoDisabled } from './data';
 
 
 export enum OperationType {
@@ -79,54 +79,14 @@ export async function testConnection(): Promise<void> {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Please check your Firebase configuration.");
+      console.warn("Please check your Firebase configuration (offline or pending configuration).");
     }
   }
 }
 
-// 2. Seeding initial data to Firestore if completely empty
+// 2. Seeding initial data to Firestore if completely empty (Disabled per developer request)
 export async function seedInitialDataIfEmpty(): Promise<void> {
-  if (!isFirebaseConfigured) {
-    console.warn("Firestore is niet geconfigureerd; seeding overgeslagen CV.");
-    return;
-  }
-  if (isDemoDisabled()) return;
-  
-  const pathForTeamsCheck = 'teams';
-  try {
-    const teamsSnap = await getDocs(collection(db, pathForTeamsCheck));
-    if (teamsSnap.empty) {
-      console.log('Firestore is empty. Seeding initial data...');
-      
-      // Batch write teams
-      const batch = writeBatch(db);
-      for (const t of INITIAL_TEAMS) {
-        batch.set(doc(db, 'teams', t.id), t);
-      }
-      
-      // Batch write submissions (including allowedViewerEmails mapping to align with strict query rules!)
-      for (const s of INITIAL_SUBMISSIONS) {
-        // Find corresponding team members
-        const teamForSub = INITIAL_TEAMS.find(t => t.id === s.teamId);
-        const allowedViewerEmails = teamForSub 
-          ? Array.from(new Set([
-              ...teamForSub.memberEmails.map(e => e.toLowerCase().trim()),
-              ...teamForSub.teamAdminEmails.map(e => e.toLowerCase().trim())
-            ]))
-          : [];
-          
-        batch.set(doc(db, 'submissions', s.id), {
-          ...s,
-          allowedViewerEmails
-        });
-      }
-      
-      await batch.commit();
-      console.log('Seeding completed successfully.');
-    }
-  } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, 'seed_data');
-  }
+  // Seeding completely disabled. Tests are written via Cypress custom setup.
 }
 
 // 3. Teams API functions

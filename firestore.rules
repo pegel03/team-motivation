@@ -29,7 +29,10 @@ service cloud.firestore {
     }
     
     function isGlobalAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(currentUserEmail()));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(currentUserEmail())) ||
+        currentUserEmail() == "beheer@logius.nl"
+      );
     }
 
     // 1. Teams collection rules

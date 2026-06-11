@@ -28,8 +28,12 @@ let authInstance: any = null;
 if (isFirebaseConfigured) {
   try {
     const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-    const databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
-    dbInstance = getFirestore(app, databaseId || undefined);
+    const rawDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+    const trimmedDbId = rawDatabaseId?.trim() || '';
+    const databaseId = (trimmedDbId === '' || trimmedDbId.toLowerCase() === 'default' || trimmedDbId === '(default)')
+      ? undefined
+      : trimmedDbId;
+    dbInstance = getFirestore(app, databaseId);
     authInstance = getAuth(app);
   } catch (error) {
     console.error("Fout bij het initialiseren van Firebase:", error);
