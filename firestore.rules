@@ -29,7 +29,7 @@ service cloud.firestore {
     }
     
     function isGlobalAdmin() {
-      return isSignedIn() && currentUserEmail() == "pegel03@gmail.com";
+      return isSignedIn() && exists(/databases/$(database)/documents/admins/$(currentUserEmail()));
     }
 
     // 1. Teams collection rules
@@ -82,6 +82,13 @@ service cloud.firestore {
         
       allow update: if false; // Submissions are immutable
       allow delete: if isSignedIn() && isGlobalAdmin();
+    }
+
+    // 3. Admin user collection rules (role-based)
+    match /admins/{adminEmail} {
+      allow get: if isSignedIn() && (currentUserEmail() == adminEmail.lower() || isGlobalAdmin());
+      allow list: if isSignedIn() && isGlobalAdmin();
+      allow write: if isSignedIn() && isGlobalAdmin();
     }
 
     function isValidSubmission(sub) {

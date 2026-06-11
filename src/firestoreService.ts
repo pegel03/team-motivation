@@ -16,7 +16,7 @@ import {
   createUserWithEmailAndPassword, 
   signOut 
 } from 'firebase/auth';
-import { db, auth } from './firebase';
+import { db, auth, isFirebaseConfigured } from './firebase';
 import { Team, Submission } from './types';
 import { INITIAL_TEAMS, INITIAL_SUBMISSIONS, isDemoDisabled } from './data';
 
@@ -70,6 +70,10 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 
 // 1. Connection Validation as requested by the Critical Constraint
 export async function testConnection(): Promise<void> {
+  if (!isFirebaseConfigured) {
+    console.warn("Firestore is niet geconfigureerd; connectietest overgeslagen.");
+    return;
+  }
   const testPath = 'test/connection';
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
@@ -82,6 +86,10 @@ export async function testConnection(): Promise<void> {
 
 // 2. Seeding initial data to Firestore if completely empty
 export async function seedInitialDataIfEmpty(): Promise<void> {
+  if (!isFirebaseConfigured) {
+    console.warn("Firestore is niet geconfigureerd; seeding overgeslagen CV.");
+    return;
+  }
   if (isDemoDisabled()) return;
   
   const pathForTeamsCheck = 'teams';

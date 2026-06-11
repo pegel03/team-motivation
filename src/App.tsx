@@ -11,7 +11,7 @@ import {
   isSandboxHidden
 } from './data';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db, auth } from './firebase';
+import { db, auth, isFirebaseConfigured } from './firebase';
 import { 
   testConnection, 
   seedInitialDataIfEmpty, 
@@ -317,6 +317,105 @@ export default function App() {
   const handleTeamUpdate = (updatedTeam: Team) => {
     saveTeamDoc(updatedTeam).catch(console.error);
   };
+
+  if (!isFirebaseConfigured) {
+    return (
+      <div id="unconfigured-setup-container" className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans antialiased pb-20">
+        <header className="border-b border-slate-200 bg-white shadow-xs py-4 px-6 animate-fade-in">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-900 text-white p-2.5 rounded-xl">
+                <Sparkles size={18} className="text-yellow-400 fill-yellow-400" />
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Logius</span>
+                <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none pt-0.5">Team Motivatie Tool</h1>
+              </div>
+            </div>
+            <div className="text-xs font-semibold px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-full flex items-center gap-1.5 font-sans">
+              <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></span>
+              Configuratie vereist
+            </div>
+          </div>
+        </header>
+
+        <main className="flex-grow max-w-3xl w-full mx-auto px-4 sm:px-6 py-12 flex flex-col justify-center">
+          <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-8 sm:p-10 space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="space-y-3">
+              <div className="inline-flex p-3 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100">
+                <AlertCircle size={28} />
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                Firebase is nog niet geconfigureerd
+              </h2>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                De applicatie is overgeschakeld naar een veilige omgevingsvariabele-workflow om te voorkomen dat 
+                gevoelige API-sleutels of database-credentials per ongeluk in Git-commits of publiekelijk op GitHub Pages worden opgeslagen.
+              </p>
+            </div>
+
+            <div className="border-t border-slate-100 pt-6 space-y-6">
+              <h3 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">
+                Hoe configureert u de API-sleutels?
+              </h3>
+
+              <div className="grid gap-6">
+                {/* Github Section */}
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 bg-slate-50 text-slate-700 rounded-xl border border-slate-100 font-mono font-bold text-xs shrink-0 w-8 h-8 flex items-center justify-center">
+                    1
+                  </div>
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-sm text-slate-900">GitHub Secrets (Productie / GitHub Pages)</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Voeg onder de repository-instellingen in GitHub (<strong className="text-slate-850 font-semibold">Settings &gt; Secrets and variables &gt; Actions</strong>) de volgende secrets toe om de website werkend te compileren op GitHub Pages:
+                    </p>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 font-mono text-[11px] text-slate-700 space-y-1 overflow-x-auto select-all">
+                      <div>VITE_FIREBASE_API_KEY="..."</div>
+                      <div>VITE_FIREBASE_AUTH_DOMAIN="..."</div>
+                      <div>VITE_FIREBASE_PROJECT_ID="..."</div>
+                      <div>VITE_FIREBASE_STORAGE_BUCKET="..."</div>
+                      <div>VITE_FIREBASE_MESSAGING_SENDER_ID="..."</div>
+                      <div>VITE_FIREBASE_APP_ID="..."</div>
+                      <div className="text-[10px] text-slate-400 mt-2"># Optioneel:</div>
+                      <div>VITE_FIREBASE_DATABASE_ID="..."</div>
+                      <div>VITE_GLOBAL_ADMIN_EMAIL="..."</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI Studio Section */}
+                <div className="flex items-start gap-4">
+                  <div className="p-2.5 bg-slate-50 text-slate-700 rounded-xl border border-slate-100 font-mono font-bold text-xs shrink-0 w-8 h-8 flex items-center justify-center">
+                    2
+                  </div>
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-sm text-slate-900">Google AI Studio Settings (Preview / Development)</h4>
+                    <p className="text-xs text-slate-600 leading-relaxed">
+                      Wilt u de app hier in de live preview testen? Voeg een bestand toe genaamd <strong className="text-slate-850 font-semibold">.env</strong> in de hoofdmap van de code editor met dezelfde waarden als hierboven, of voeg ze toe via de <strong className="text-slate-850 font-semibold">Settings</strong> optie rechtsboven in AI Studio.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <span className="text-[11px] text-slate-400 leading-normal max-w-md">
+                Zodra de instellingen zijn geladen, herkent de applicatie dit automatisch en start het portaal direct op.
+              </span>
+              <button 
+                onClick={() => window.location.reload()}
+                className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 hover:shadow-md"
+              >
+                Opnieuw controleren
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const sharedUrlTeam = urlTeamId ? teams.find(t => t.id === urlTeamId) : null;
 
