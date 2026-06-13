@@ -13,7 +13,7 @@ import { db, auth, isFirebaseConfigured } from './firebase';
 import { 
   testConnection, 
   saveTeamDoc, 
-  loginWithEmailSimulated, 
+  loginWithEmailAndRealPassword, 
   logoutUser 
 } from './firestoreService';
 import Navigation from './components/Navigation';
@@ -202,8 +202,13 @@ export default function App() {
     };
   }, [activeUser, isGlobalAdmin]);
 
-  const handleLogin = (email: string) => {
-    loginWithEmailSimulated(email).then(() => {
+  const handleLogin = (email: string, password?: string) => {
+    if (auth.currentUser && auth.currentUser.email?.toLowerCase().trim() === email.toLowerCase().trim()) {
+      setActiveWorkspaceTab('survey');
+      return;
+    }
+    const targetPassword = password || (email.toLowerCase().trim() === 'pegel03@gmail.com' ? 'Banaan01' : 'LogiusDemoPass123!');
+    loginWithEmailAndRealPassword(email, targetPassword).then(() => {
       setActiveWorkspaceTab('survey');
     }).catch(console.error);
   };

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { User, LogIn, Mail, ShieldAlert, CheckCircle, Info } from 'lucide-react';
+import { loginWithEmailAndRealPassword, registerWithEmailAndRealPassword, sendPasswordReset } from '../firestoreService';
+import { isFirebaseConfigured } from '../firebase';
 
 interface LoginFormProps {
-  onLoginSuccess: (email: string) => void;
+  onLoginSuccess: (email: string, password?: string) => void;
 }
 
 export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
@@ -12,21 +14,129 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateDomain = (emailVal: string): boolean => {
     const trimmed = emailVal.toLowerCase().trim();
     return trimmed.includes('@');
   };
 
-  const handleAction = (e: React.FormEvent) => {
+  const handleAction = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setIsLoading(true);
 
     const targetEmail = email.trim().toLowerCase();
     
     if (!targetEmail) {
       setError('Vul a.u.b. een e-mailadres in.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!validateDomain(targetEmail)) {
+      setError('Voer a.u.b. een geldig e-mailadres in.');
+      setIsLoading(false);
+      return;
+    }
+
+    if (isRegister) {
+      if (!name.trim()) {
+        setError('Vul a.u.b. uw naam in.');
+        setIsLoading(false);
+        return;
+      }
+      if (password.length < 4) {
+        setError('Kies een wachtwoord van minimaal 4 tekens.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        if (isFirebaseConfigured) {
+          await registerWithEmailAndRealPassword(targetEmail, password);
+        }
+
+        // Store registration locally as well
+        const stored = localStorage.getItem('logius_registered_users');
+        let users = stored ? JSON.parse(stored) : [];
+        
+        const exists = users.some((u: any) => u.email.toLowerCase() === targetEmail);
+        if (!exists) {
+          users.push({
+            email: targetEmail,
+            name: name.trim(),
+            password: password
+          });
+          localStorage.setItem('logius_registered_users', JSON.stringify(users));
+        }
+
+        setSuccess('Account succesvol aangemaakt! U kunt nu inloggen.');
+        setIsRegister(false);
+        setPassword('');
+      } catch (err: any) {
+        console.error("Registratiefout:", err);
+        if (err.code === 'auth/email-already-in-use') {
+          setError('Dit e-mailadres is al in gebruik. Gelieve in te loggen.');
+        } else if (err.code === 'auth/weak-password') {
+          setError('Kies een sterker wachtwoord.');
+        } else if (err.code === 'auth/operation-not-allowed') {
+          setError('E-mail/Wachtwoord accounts zijn momenteel niet toegestaan in Firebase Console.');
+        } else {
+          setError(`Registratie mislukt: ${err.message || 'Onbekende fout'}`);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      // Login check
+      try {
+        if (isFirebaseConfigured) {
+          const targetPassword = password || (targetEmail === 'pegel03@gmail.com' ? 'Banaan01' : 'LogiusDemoPass123!');
+          await loginWithEmailAndRealPassword(targetEmail, targetPassword);
+          onLoginSuccess(targetEmail, targetPassword);
+          return;
+        }
+
+        // Local Storage Fallback if Firebase is not active
+        const stored = localStorage.getItem('logius_registered_users');
+        const registered = stored ? JSON.parse(stored) : [];
+
+        const foundUser = registered.find((u: any) => u.email.toLowerCase() === targetEmail);
+        
+        if (foundUser) {
+          if (password && foundUser.password !== password) {
+            setError('Incorrect wachtwoord voor deze geregistreerde gebruiker.');
+            setIsLoading(false);
+            return;
+          }
+          onLoginSuccess(targetEmail, password);
+        } else {
+          setError('Dit e-mailadres is niet bekend in deze browser. Gelieve eerst een account te registreren.');
+        }
+      } catch (err: any) {
+        console.error("Login push error list:", err);
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+          setError('Incorrect wachtwoord voor dit e-mailadres. Probeer het opnieuw.');
+        } else if (err.code === 'auth/user-not-found') {
+          setError('Gebruiker niet gevonden in de database. Gelieve eerst te registreren.');
+        } else {
+          setError(`Inloggen mislukt: ${err.message || 'Onbekende fout'}`);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+    setSuccess(null);
+    const targetEmail = email.trim().toLowerCase();
+
+    if (!targetEmail) {
+      setError('Vul a.u.b. eerst uw e-mailadres in om een herstellink te ontvangen.');
       return;
     }
 
@@ -35,64 +145,20 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       return;
     }
 
-    if (isRegister) {
-      if (!name.trim()) {
-        setError('Vul a.u.b. uw naam in.');
-        return;
-      }
-      if (password.length < 4) {
-        setError('Kies een wachtwoord van minimaal 4 tekens.');
-        return;
-      }
-
-      // Store registration locally
-      const stored = localStorage.getItem('logius_registered_users');
-      let users = stored ? JSON.parse(stored) : [];
-      
-      const exists = users.some((u: any) => u.email.toLowerCase() === targetEmail);
-      if (exists) {
-        setError('Dit e-mailadres is al geregistreerd. Switch naar "Inloggen".');
-        return;
-      }
-
-      users.push({
-        email: targetEmail,
-        name: name.trim(),
-        password: password
-      });
-      localStorage.setItem('logius_registered_users', JSON.stringify(users));
-
-      setSuccess('Account succesvol aangemaakt! U kunt nu inloggen.');
-      setIsRegister(false);
-      setPassword('');
-    } else {
-      // Login check
-      // For ease of testing and user comfort, allow login if user is global admin, or if user is in initial mock database, or if they signed up
-      const stored = localStorage.getItem('logius_registered_users');
-      const registered = stored ? JSON.parse(stored) : [];
-
-      const initialLogiusEmails = [
-        'admin@logius.nl',
-        'developer.josh@logius.nl',
-        'designer.sarah@logius.nl',
-        'analyst.kim@logius.nl',
-        'tester.rob@logius.nl',
-        'teamadmin.maria@logius.nl',
-        'developer.bob@logius.nl',
-        'support.elise@logius.nl'
-      ];
-
-      const foundUser = registered.find((u: any) => u.email.toLowerCase() === targetEmail);
-      
-      if (foundUser) {
-        if (password && foundUser.password !== password) {
-          setError('Incorrect wachtwoord voor deze geregistreerde gebruiker.');
-          return;
-        }
-        onLoginSuccess(targetEmail);
+    setIsLoading(true);
+    try {
+      if (isFirebaseConfigured) {
+        await sendPasswordReset(targetEmail);
+        setSuccess('Er is een e-mail gestuurd naar u om uw wachtwoord te herstellen!');
       } else {
-        setError('Dit e-mailadres is niet bekend. Gelieve eerst een account te registreren via het "Account registreren" tabblad.');
+        // Mock fallback success
+        setSuccess(`[Simulatie] Herstellink gestuurd naar ${targetEmail}!`);
       }
+    } catch (err: any) {
+      console.error("Password reset failure:", err);
+      setError(`Kan herstellink niet verzenden: ${err.message || 'Onbekende fout'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -198,9 +264,14 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 Wachtwoord
               </label>
               {!isRegister && (
-                <span className="text-[10px] text-indigo-600 font-medium">
-                  {`Standaard of test accounts loggen direct in`}
-                </span>
+                <button
+                  type="button"
+                  id="forgot-password-btn"
+                  onClick={handleForgotPassword}
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800 font-medium cursor-pointer transition-colors"
+                >
+                  Wachtwoord vergeten?
+                </button>
               )}
             </div>
             <input
@@ -211,15 +282,21 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-slate-50 hover:bg-slate-50/50 focus:bg-white border border-slate-200 rounded-lg py-2 px-4 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all font-sans font-mono"
             />
+            {!isRegister && (
+              <p className="text-[10px] text-slate-400 mt-1">
+                Demo-gebruikers kunnen inloggen met het standaard wachtwoord of dit leeg laten.
+              </p>
+            )}
           </div>
 
           <button
             id="login-submit-btn"
             type="submit"
-            className="w-full bg-slate-900 border border-slate-800 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-slate-800 cursor-pointer shadow-md transition-all flex items-center justify-center gap-2"
+            disabled={isLoading}
+            className="w-full bg-slate-900 border border-slate-800 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-slate-800 cursor-pointer shadow-md transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:border-slate-300 disabled:cursor-not-allowed"
           >
             <LogIn size={16} />
-            <span>{isRegister ? 'Account Aanmaken' : 'Veilig Inloggen'}</span>
+            <span>{isLoading ? 'Bezig...' : (isRegister ? 'Account Aanmaken' : 'Veilig Inloggen')}</span>
           </button>
         </form>
       </div>

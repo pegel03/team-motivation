@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Team } from '../types';
 import { 
-  Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle, Database, RefreshCw
+  Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle
 } from 'lucide-react';
-import { isDemoDisabled, setDemoDisabledFlag, isSandboxHidden, setSandboxHiddenFlag } from '../data';
 import { saveTeamDoc, deleteTeamDoc } from '../firestoreService';
 
 interface AdminPanelProps {
@@ -18,7 +17,6 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
   const [editingTeamName, setEditingTeamName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState<Record<string, string>>({}); // teamId -> text
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [sandboxHidden, setSandboxHidden] = useState(isSandboxHidden());
 
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
@@ -386,93 +384,6 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
         )}
       </div>
 
-      {/* System Maintenance & Demo settings */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-4">
-        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-          <Database size={18} className="text-indigo-600" />
-          <span>Systeemonderhoud & Demo-modus</span>
-        </h3>
-        
-        <p className="text-xs text-slate-600 leading-relaxed">
-          Als globale systeembeheerder kunt u de demomodus beheren. Dit bepaalt of er standaard testteams en antwoorden worden getoond op een vers geladen systeem.
-        </p>
-
-        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-          <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700">Huidige status:</span>
-            {isDemoDisabled() ? (
-              <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg font-bold">
-                Lege Website Actief (Geen Testdata)
-              </span>
-            ) : (
-              <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg font-bold">
-                Demomodus Actief (Met Testdata & Gebruikers)
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60">
-            <span className="font-semibold text-slate-700">Rol-wisselaar (Simulatiepaneel r.o.):</span>
-            <button
-              id="btn-toggle-sandbox"
-              onClick={() => {
-                const nextHidden = !sandboxHidden;
-                setSandboxHiddenFlag(nextHidden);
-                setSandboxHidden(nextHidden);
-                window.dispatchEvent(new Event('storage'));
-              }}
-              className={`px-2.5 py-1 text-xs border font-bold rounded-lg transition-all cursor-pointer ${
-                sandboxHidden
-                  ? 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
-                  : 'bg-indigo-600 border-indigo-700 text-white hover:bg-indigo-700'
-              }`}
-            >
-              {sandboxHidden ? 'Uitgezet / Verborgen' : 'Aan / Zichtbaar'}
-            </button>
-          </div>
-
-          <div className="flex flex-wrap gap-3 pt-2">
-            <button
-              id="btn-wipe-demo-data"
-              onClick={() => {
-                if (confirm('Weet u zeker dat u ALLE testgegevens (inclusief testteams en testantwoorden) wilt wissen en met een volledig lege website wilt beginnen? Dit is onomkeerbaar.')) {
-                  setDemoDisabledFlag(true);
-                  localStorage.removeItem('logius_teams_data_v2');
-                  localStorage.removeItem('logius_submissions_data_v2');
-                  window.location.reload();
-                }
-              }}
-              className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-bold text-xs px-4 py-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
-            >
-              <Trash2 size={14} />
-              <span>Schoon begin: wis alle testdata</span>
-            </button>
-
-            {isDemoDisabled() && (
-              <button
-                id="btn-restore-demo-data"
-                onClick={() => {
-                  if (confirm('Wilt u de standaard testdata en testgebruikers herstellen? Uw huidige gegevens worden overschreven.')) {
-                    setDemoDisabledFlag(false);
-                    localStorage.removeItem('logius_teams_data_v2');
-                    localStorage.removeItem('logius_submissions_data_v2');
-                    window.location.reload();
-                  }
-                }}
-                className="bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-700 font-bold text-xs px-4 py-2 rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
-              >
-                <RefreshCw size={14} />
-                <span>Herstel demomodus (met testdata)</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="text-[11px] text-slate-500 bg-indigo-50/50 p-3 rounded-xl border border-indigo-50">
-          <p className="font-semibold text-indigo-950 mb-1">💡 Productie-tip voor GitHub Pages deployment:</p>
-          Om de website <strong>automatisch direct leeg</strong> te bouwen en te publiceren via GitHub Actions (of bij lokaal bouwen), kunt u de omgevingsvariabele <code className="bg-white px-1.5 py-0.5 rounded border border-indigo-100 text-indigo-700 font-mono">VITE_NO_MOCK_DATA=true</code> meegeven tijdens het bouwproces. In de workflow staat dit al voor u voorbereid in de <code className="bg-white px-1 py-0.5 rounded border border-indigo-100 text-[10px] font-mono">.github/workflows/deploy.yml</code>.
-        </div>
-      </div>
     </div>
   );
 }

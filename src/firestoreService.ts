@@ -14,11 +14,11 @@ import {
   signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  signOut 
+  signOut,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import { Team, Submission } from './types';
-import { isDemoDisabled } from './data';
 
 
 export enum OperationType {
@@ -167,6 +167,44 @@ export async function loginWithEmailSimulated(email: string): Promise<void> {
     } else {
       console.error("Error signing in demo user in Firebase:", err);
     }
+  }
+}
+
+export async function loginWithEmailAndRealPassword(email: string, password?: string): Promise<void> {
+  const targetPassword = password || (email.toLowerCase().trim() === 'pegel03@gmail.com' ? 'Banaan01' : 'LogiusDemoPass123!');
+  try {
+    await signInWithEmailAndPassword(auth, email, targetPassword);
+  } catch (err: any) {
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email') {
+      try {
+        await createUserWithEmailAndPassword(auth, email, targetPassword);
+      } catch (createErr: any) {
+        console.error("Error auto-creating user in Firebase on login:", createErr);
+        throw createErr;
+      }
+    } else {
+      console.error("Error signing in user in Firebase:", err);
+      throw err;
+    }
+  }
+}
+
+export async function registerWithEmailAndRealPassword(email: string, password?: string): Promise<void> {
+  const targetPassword = password || "LogiusDemoPass123!";
+  try {
+    await createUserWithEmailAndPassword(auth, email, targetPassword);
+  } catch (createErr: any) {
+    console.error("Error registering user in Firebase:", createErr);
+    throw createErr;
+  }
+}
+
+export async function sendPasswordReset(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email);
+  } catch (error) {
+    console.error("Password reset error in Firebase:", error);
+    throw error;
   }
 }
 

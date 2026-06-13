@@ -9,3 +9,5 @@ coverage/
 firebase-applet-config.json
 team-motivation.iml
 .idea
+cypress/
+cypress.config.js

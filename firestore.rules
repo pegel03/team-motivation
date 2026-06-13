@@ -25,12 +25,14 @@ service cloud.firestore {
     }
     
     function currentUserEmail() {
-      return request.auth.token.email.lower();
+      return request.auth != null && request.auth.token != null && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
     }
     
     function isGlobalAdmin() {
       return isSignedIn() && (
-        exists(/databases/$(database)/documents/admins/$(currentUserEmail())) ||
+        (currentUserEmail() != '' && exists(/databases/$(database)/documents/admins/$(currentUserEmail()))) ||
         currentUserEmail() == "beheer@logius.nl"
       );
     }
@@ -89,7 +91,10 @@ service cloud.firestore {
 
     // 3. Admin user collection rules (role-based)
     match /admins/{adminEmail} {
-      allow get: if isSignedIn() && (currentUserEmail() == adminEmail.lower() || isGlobalAdmin());
+      allow get: if isSignedIn() && (
+        (currentUserEmail() != '' && currentUserEmail() == adminEmail.lower()) || 
+        isGlobalAdmin()
+      );
       allow list: if isSignedIn() && isGlobalAdmin();
       allow write: if isSignedIn() && isGlobalAdmin();
     }
