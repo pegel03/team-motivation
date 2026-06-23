@@ -1,4 +1,5 @@
 import { Question, Team, Submission } from './types';
+import { safeLocalStorage } from './utils/safeStorage';
 
 export const QUESTIONS: Question[] = [
   {
@@ -60,7 +61,7 @@ export const isDemoDisabled = (): boolean => {
 };
 
 export const setDemoDisabledFlag = (disabled: boolean): void => {
-  localStorage.setItem(DEMO_DISABLED_KEY, 'true');
+  safeLocalStorage.setItem(DEMO_DISABLED_KEY, 'true');
 };
 
 export const isSandboxHidden = (): boolean => {
@@ -68,17 +69,17 @@ export const isSandboxHidden = (): boolean => {
 };
 
 export const setSandboxHiddenFlag = (hidden: boolean): void => {
-  localStorage.setItem(HIDE_SANDBOX_KEY, 'true');
+  safeLocalStorage.setItem(HIDE_SANDBOX_KEY, 'true');
 };
 
 export const loadTeams = (): Team[] => {
-  const teamsJson = localStorage.getItem(TEAMS_KEY);
+  const teamsJson = safeLocalStorage.getItem(TEAMS_KEY);
   if (!teamsJson) {
     if (isDemoDisabled()) {
-      localStorage.setItem(TEAMS_KEY, JSON.stringify([]));
+      safeLocalStorage.setItem(TEAMS_KEY, JSON.stringify([]));
       return [];
     }
-    localStorage.setItem(TEAMS_KEY, JSON.stringify(INITIAL_TEAMS));
+    safeLocalStorage.setItem(TEAMS_KEY, JSON.stringify(INITIAL_TEAMS));
     return INITIAL_TEAMS;
   }
   try {
@@ -100,19 +101,19 @@ export const loadTeams = (): Team[] => {
 };
 
 export const saveTeams = (teams: Team[]): void => {
-  localStorage.setItem(TEAMS_KEY, JSON.stringify(teams));
+  safeLocalStorage.setItem(TEAMS_KEY, JSON.stringify(teams));
   // Dispatch active event to synchronize other tabs in real-time
   window.dispatchEvent(new Event('storage'));
 };
 
 export const loadSubmissions = (): Submission[] => {
-  const subJson = localStorage.getItem(SUBMISSIONS_KEY);
+  const subJson = safeLocalStorage.getItem(SUBMISSIONS_KEY);
   if (!subJson) {
     if (isDemoDisabled()) {
-      localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([]));
+      safeLocalStorage.setItem(SUBMISSIONS_KEY, JSON.stringify([]));
       return [];
     }
-    localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(INITIAL_SUBMISSIONS));
+    safeLocalStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(INITIAL_SUBMISSIONS));
     return INITIAL_SUBMISSIONS;
   }
   try {
@@ -123,19 +124,20 @@ export const loadSubmissions = (): Submission[] => {
 };
 
 export const saveSubmissions = (submissions: Submission[]): void => {
-  localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(submissions));
+  safeLocalStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(submissions));
   window.dispatchEvent(new Event('storage'));
 };
 
 export const loadActiveUser = (): string | null => {
-  return localStorage.getItem(ACTIVE_USER_KEY);
+  return safeLocalStorage.getItem(ACTIVE_USER_KEY);
 };
 
 export const saveActiveUser = (email: string | null): void => {
   if (email) {
-    localStorage.setItem(ACTIVE_USER_KEY, email);
+    safeLocalStorage.setItem(ACTIVE_USER_KEY, email);
   } else {
-    localStorage.removeItem(ACTIVE_USER_KEY);
+    safeLocalStorage.removeItem(ACTIVE_USER_KEY);
   }
   window.dispatchEvent(new Event('storage'));
 };
+

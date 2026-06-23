@@ -8,6 +8,7 @@ import {
   saveTeams,
   QUESTIONS
 } from './data';
+import { safeLocalStorage } from './utils/safeStorage';
 import { collection, onSnapshot, query, where, doc } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from './firebase';
 import { 
@@ -46,10 +47,10 @@ export default function App() {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user && user.email) {
         setActiveUser(user.email);
-        localStorage.setItem('active_user_v2', user.email);
+        safeLocalStorage.setItem('active_user_v2', user.email);
       } else {
         setActiveUser(null);
-        localStorage.removeItem('active_user_v2');
+        safeLocalStorage.removeItem('active_user_v2');
       }
     });
 
@@ -107,6 +108,8 @@ export default function App() {
         logoutUser().catch(console.error);
         alert("Uw account is verwijderd door de beheerder of u bent verwijderd uit het team. U wordt nu uitgelogd.");
       }
+    }, (err) => {
+      console.warn("Fout bij realtime controleren gebruikersstatus:", err);
     });
 
     return () => unsubscribeUserExist();
@@ -114,7 +117,7 @@ export default function App() {
 
   // Listen to Firestore real-time updates when logged in
   useEffect(() => {
-    if (!activeUser) {
+    if (!activeUser || !isFirebaseConfigured) {
       setTeams([]);
       setSubmissions([]);
       return;
@@ -735,7 +738,9 @@ export default function App() {
                                   <div key={email} className="flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-all text-xs">
                                     <div className="flex items-center gap-2 min-w-0">
                                       {isUserAdminOfTeam ? (
-                                        <Shield size={13} className="text-indigo-600 shrink-0" title="Teambeheerder" />
+                                        <span title="Teambeheerder">
+                                          <Shield size={13} className="text-indigo-600 shrink-0" />
+                                        </span>
                                       ) : (
                                         <div className="h-1.5 w-1.5 rounded-full bg-slate-300 shrink-0" />
                                       )}

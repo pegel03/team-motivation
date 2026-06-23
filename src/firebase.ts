@@ -59,5 +59,5 @@ const dummyDb = new Proxy({}, {
   }
 });
 
-export const db = isFirebaseConfigured ? dbInstance : dummyDb;
-export const auth = isFirebaseConfigured ? authInstance : dummyAuth;
+export const db = (isFirebaseConfigured && dbInstance) ? dbInstance : dummyDb;
+export const auth = (isFirebaseConfigured && authInstance) ? authInstance : dummyAuth;
