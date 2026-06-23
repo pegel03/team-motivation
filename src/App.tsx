@@ -14,7 +14,8 @@ import {
   testConnection, 
   saveTeamDoc, 
   loginWithEmailAndRealPassword, 
-  logoutUser 
+  logoutUser,
+  deleteUserDoc
 } from './firestoreService';
 import Navigation from './components/Navigation';
 import LoginForm from './components/LoginForm';
@@ -45,10 +46,10 @@ export default function App() {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (user && user.email) {
         setActiveUser(user.email);
-        localStorage.setItem('logius_active_user_v2', user.email);
+        localStorage.setItem('active_user_v2', user.email);
       } else {
         setActiveUser(null);
-        localStorage.removeItem('logius_active_user_v2');
+        localStorage.removeItem('active_user_v2');
       }
     });
 
@@ -72,11 +73,11 @@ export default function App() {
     const normalizedEmail = activeUser.toLowerCase().trim();
     const adminDocRef = doc(db, 'admins', normalizedEmail);
     const unsubscribeAdmin = onSnapshot(adminDocRef, (docSnap) => {
-      const exists = docSnap.exists() || normalizedEmail === 'beheer@logius.nl';
+      const exists = docSnap.exists() || normalizedEmail === 'beheer@example.nl';
       setIsGlobalAdmin(exists);
     }, (err) => {
       // Fallback for bootstrap admins if permission is lacking or document doesn't exist yet
-      const isBootstrapAdmin = normalizedEmail === 'beheer@logius.nl';
+      const isBootstrapAdmin = normalizedEmail === 'beheer@example.nl';
       setIsGlobalAdmin(isBootstrapAdmin);
       if (!isBootstrapAdmin) {
         console.warn("Fout bij ophalen admin status (kan onvoldoende rechten zijn):", err);
@@ -85,6 +86,30 @@ export default function App() {
     });
 
     return () => unsubscribeAdmin();
+  }, [activeUser]);
+
+  // Real-time check to see if the active user document was deleted (meaning local/auth removal by admin)
+  useEffect(() => {
+    if (!activeUser || !isFirebaseConfigured) {
+      return;
+    }
+
+    const emailLower = activeUser.toLowerCase().trim();
+    if (emailLower === 'beheer@example.nl' || emailLower === 'pegel03@gmail.com') {
+      return;
+    }
+
+    const normalizedEmail = emailLower;
+    const userDocRef = doc(db, 'users', normalizedEmail);
+    const unsubscribeUserExist = onSnapshot(userDocRef, (snap) => {
+      if (!snap.exists()) {
+        console.warn("Active user document was removed from Firestore. Logging out...");
+        logoutUser().catch(console.error);
+        alert("Uw account is verwijderd door de beheerder of u bent verwijderd uit het team. U wordt nu uitgelogd.");
+      }
+    });
+
+    return () => unsubscribeUserExist();
   }, [activeUser]);
 
   // Listen to Firestore real-time updates when logged in
@@ -207,7 +232,7 @@ export default function App() {
       setActiveWorkspaceTab('survey');
       return;
     }
-    const targetPassword = password || (email.toLowerCase().trim() === 'pegel03@gmail.com' ? 'Banaan01' : 'LogiusDemoPass123!');
+    const targetPassword = password || '';
     loginWithEmailAndRealPassword(email, targetPassword).then(() => {
       setActiveWorkspaceTab('survey');
     }).catch(console.error);
@@ -283,6 +308,7 @@ export default function App() {
       };
       
       handleUpdateSelfTeam(updatedTeam);
+      deleteUserDoc(email).catch(console.error);
     }
   };
 
@@ -337,7 +363,7 @@ export default function App() {
                 <Sparkles size={18} className="text-yellow-400 fill-yellow-400" />
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Logius</span>
+                <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Team motivates</span>
                 <h1 className="text-sm font-bold text-slate-900 tracking-tight leading-none pt-0.5">Team Motivatie Tool</h1>
               </div>
             </div>
@@ -515,7 +541,7 @@ export default function App() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 bg-indigo-600 rounded-full animate-pulse" />
-                      <h2 className="text-base font-bold text-slate-900">Mijn Logius Teams</h2>
+                      <h2 className="text-base font-bold text-slate-900">Mijn Teams</h2>
                     </div>
                     <p className="text-xs text-slate-500">
                       U bent geregistreerd in <strong className="text-indigo-600 font-bold">{memberTeams.length}</strong> {memberTeams.length === 1 ? 'team' : 'teams'}. Wissel hiernaast eenvoudig om uw status per team te beheren.
@@ -669,7 +695,7 @@ export default function App() {
                             type="email"
                             value={selfNewMemberInput}
                             onChange={(e) => setSelfNewMemberInput(e.target.value)}
-                            placeholder="collega@logius.nl"
+                            placeholder="collega@example.nl"
                             className="flex-1 max-w-md bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 font-semibold"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {

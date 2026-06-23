@@ -49,11 +49,11 @@ export const INITIAL_TEAMS: Team[] = [];
 export const INITIAL_SUBMISSIONS: Submission[] = [];
 
 // Local storage keys
-const TEAMS_KEY = 'logius_teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!
-const SUBMISSIONS_KEY = 'logius_submissions_data_v2';
-const ACTIVE_USER_KEY = 'logius_active_user_v2';
-const DEMO_DISABLED_KEY = 'logius_demo_disabled';
-const HIDE_SANDBOX_KEY = 'logius_hide_sandbox';
+const TEAMS_KEY = 'teams_data_v2'; // Bumped storage key so the new questionnaire questions apply immediately!
+const SUBMISSIONS_KEY = 'submissions_data_v2';
+const ACTIVE_USER_KEY = 'active_user_v2';
+const DEMO_DISABLED_KEY = 'demo_disabled';
+const HIDE_SANDBOX_KEY = 'hide_sandbox';
 
 export const isDemoDisabled = (): boolean => {
   return true;

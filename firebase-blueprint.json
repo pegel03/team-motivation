@@ -26,6 +26,17 @@
         "isSkipped": { "type": "boolean", "description": "Whether to exclude this submission from score averages" }
       },
       "required": ["id", "teamId", "userEmail", "scores", "submittedAt", "isSkipped"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A registered user in the application representing user authentication details in Firestore",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "description": "The unique email address of the user" },
+        "name": { "type": "string", "description": "The name of the user" },
+        "password": { "type": "string", "description": "Optional user password for authentication verification purposes" }
+      },
+      "required": ["email", "name"]
     }
   },
   "firestore": {
@@ -36,6 +47,10 @@
     "submissions/{submissionId}": {
       "schema": "Submission",
       "description": "Surveys submitted by team members"
+    },
+    "users/{email}": {
+      "schema": "User",
+      "description": "The users authentication table in Firestore"
     }
   }
 }

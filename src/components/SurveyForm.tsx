@@ -28,10 +28,21 @@ export default function SurveyForm({
   const isTeamAdmin = Array.isArray(userTeam.teamAdminEmails) && userTeam.teamAdminEmails.map(ad => ad.toLowerCase()).includes(currentUserEmail.toLowerCase());
   const displayEmail = isGlobalAdmin ? "Systeembeheerder" : currentUserEmail;
 
+  const activeSessionId = userTeam.activeSessionId;
+  const activeSession = userTeam.sessions?.find(s => s.id === activeSessionId);
+
   // Check if user has already submitted on this session
   useEffect(() => {
+    if (!activeSessionId) {
+      setAnswers({});
+      setIsSkipped(false);
+      setHasSubmitted(false);
+      setMyAverage(null);
+      return;
+    }
+
     const existing = allSubmissions.find(
-      s => s.teamId === userTeam.id && s.userEmail === currentUserEmail
+      s => s.teamId === userTeam.id && s.sessionId === activeSessionId && s.userEmail === currentUserEmail
     );
     if (existing) {
       setAnswers(existing.scores);
@@ -54,7 +65,7 @@ export default function SurveyForm({
       setHasSubmitted(false);
       setMyAverage(null);
     }
-  }, [currentUserEmail, userTeam.id, allSubmissions]);
+  }, [currentUserEmail, userTeam.id, activeSessionId, allSubmissions]);
 
   const handleSelectScore = (questionId: string, value: number) => {
     if (isSkipped) return; // cannot select scores if skipped
@@ -74,6 +85,11 @@ export default function SurveyForm({
     e.preventDefault();
     setErrorMessage(null);
 
+    if (!activeSessionId) {
+      setErrorMessage("Fout: Geen actieve enquête-sessie gevonden.");
+      return;
+    }
+
     // Unless skipped, verify all questions have an answer
     if (!isSkipped) {
       const unanswered = QUESTIONS.filter(q => !answers[q.id]);
@@ -85,8 +101,9 @@ export default function SurveyForm({
 
     // Prepare submission object
     const newSubmission: Submission = {
-      id: `s-${userTeam.id}-${currentUserEmail.replace(/[@.]/g, '-')}`,
+      id: `s-${userTeam.id}-${activeSessionId}-${currentUserEmail.replace(/[@.]/g, '-')}`,
       teamId: userTeam.id,
+      sessionId: activeSessionId,
       userEmail: currentUserEmail,
       scores: isSkipped ? {} : answers,
       submittedAt: new Date().toISOString(),
@@ -95,7 +112,7 @@ export default function SurveyForm({
 
     // Upsert submission
     const filtered = allSubmissions.filter(
-      s => !(s.teamId === userTeam.id && s.userEmail === currentUserEmail)
+      s => !(s.teamId === userTeam.id && s.sessionId === activeSessionId && s.userEmail === currentUserEmail)
     );
     const nextSubmissions = [...filtered, newSubmission];
 
@@ -118,6 +135,31 @@ export default function SurveyForm({
     // Keep answers available for easy editing!
   };
 
+  if (!activeSessionId) {
+    return (
+      <div id="no-active-session-container" className="max-w-3xl mx-auto font-sans">
+        <div className="bg-white border border-slate-200 rounded-2xl p-10 shadow-sm text-center space-y-4">
+          <div className="flex justify-center flex-col items-center">
+            <div className="h-14 w-14 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center animate-pulse mb-3">
+              <AlertCircle size={28} />
+            </div>
+            <h3 className="font-bold text-lg text-slate-900">Geen Actieve Enquête</h3>
+            <p className="text-xs text-slate-500 max-w-sm mt-1 leading-relaxed">
+              Er is momenteel geen actieve sessie gestart voor dit team. Vraag uw teambeheerder om met de hand een nieuwe enquête-sessie te openen.
+            </p>
+          </div>
+          {isTeamAdmin && (
+            <div className="pt-3">
+              <p className="text-xs text-indigo-700 bg-indigo-50/70 border border-indigo-100 rounded-lg px-4 py-2 inline-block font-medium">
+                Tip: Als teambeheerder kunt u een nieuwe sessie met de hand starten op het <strong>Dashboard</strong> tabblad.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div id="survey-form-container" className="max-w-3xl mx-auto font-sans space-y-6">
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -125,7 +167,7 @@ export default function SurveyForm({
           <div className="space-y-1">
             <h2 className="text-lg font-bold text-slate-900">Enquête: {userTeam.name}</h2>
             <p className="text-xs text-slate-500">
-              U neemt momenteel deel als teamlid van <strong className="text-slate-700">{userTeam.name}</strong>.
+              Inzendingen registreren voor de sessie van <strong className="text-indigo-600">{activeSession?.startDate || 'Geen datum'}</strong>.
             </p>
           </div>
           <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-100 text-xs font-semibold shrink-0">

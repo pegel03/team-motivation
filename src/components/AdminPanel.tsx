@@ -3,7 +3,7 @@ import { Team } from '../types';
 import { 
   Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle
 } from 'lucide-react';
-import { saveTeamDoc, deleteTeamDoc } from '../firestoreService';
+import { saveTeamDoc, deleteTeamDoc, deleteUserDoc } from '../firestoreService';
 
 interface AdminPanelProps {
   teams: Team[];
@@ -103,6 +103,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
         teamAdminEmails: nextAdmins
       };
       saveTeamDoc(updatedTeam).catch(console.error);
+      deleteUserDoc(email).catch(console.error);
     }
   };
 
@@ -144,7 +145,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
             <h2 className="text-lg font-bold text-slate-900">Beheerderspaneel</h2>
           </div>
           <p className="text-xs text-slate-500">
-            Beheer alle teams, geautoriseerde e-mailadressen en team-beheerders binnen Logius.
+            Beheer alle teams, geautoriseerde e-mailadressen en team-beheerders.
           </p>
         </div>
         <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-100 text-xs font-semibold">
@@ -163,7 +164,7 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
           <input
             id="admin-new-team-input"
             type="text"
-            placeholder="bv. Logius Burgerportaal, Project Team Beta..."
+            placeholder="bv. Project Team Alfa, Project Team Beta..."
             value={newTeamName}
             onChange={(e) => setNewTeamName(e.target.value)}
             className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-indigo-600/10 focus:border-indigo-600 transition-all"

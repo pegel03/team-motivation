@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { User, LogIn, Mail, ShieldAlert, CheckCircle, Info } from 'lucide-react';
-import { loginWithEmailAndRealPassword, registerWithEmailAndRealPassword, sendPasswordReset } from '../firestoreService';
-import { isFirebaseConfigured } from '../firebase';
+import { loginWithEmailAndRealPassword, registerWithEmailAndRealPassword, sendPasswordReset, saveUserDoc, logoutUser, checkAndRestoreUserAccess } from '../firestoreService';
+import { doc, getDoc } from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '../firebase';
 
 interface LoginFormProps {
   onLoginSuccess: (email: string, password?: string) => void;
@@ -56,20 +57,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       try {
         if (isFirebaseConfigured) {
           await registerWithEmailAndRealPassword(targetEmail, password);
-        }
-
-        // Store registration locally as well
-        const stored = localStorage.getItem('logius_registered_users');
-        let users = stored ? JSON.parse(stored) : [];
-        
-        const exists = users.some((u: any) => u.email.toLowerCase() === targetEmail);
-        if (!exists) {
-          users.push({
-            email: targetEmail,
-            name: name.trim(),
-            password: password
-          });
-          localStorage.setItem('logius_registered_users', JSON.stringify(users));
+          await saveUserDoc(targetEmail, name.trim(), password);
         }
 
         setSuccess('Account succesvol aangemaakt! U kunt nu inloggen.');
@@ -78,7 +66,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       } catch (err: any) {
         console.error("Registratiefout:", err);
         if (err.code === 'auth/email-already-in-use') {
-          setError('Dit e-mailadres is al in gebruik. Gelieve in te loggen.');
+          setSuccess('Dit e-mailadres is al geregistreerd. U kunt direct inloggen met uw wachtwoord.');
+          setIsRegister(false);
+          setPassword('');
         } else if (err.code === 'auth/weak-password') {
           setError('Kies een sterker wachtwoord.');
         } else if (err.code === 'auth/operation-not-allowed') {
@@ -93,27 +83,28 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       // Login check
       try {
         if (isFirebaseConfigured) {
-          const targetPassword = password || (targetEmail === 'pegel03@gmail.com' ? 'Banaan01' : 'LogiusDemoPass123!');
-          await loginWithEmailAndRealPassword(targetEmail, targetPassword);
-          onLoginSuccess(targetEmail, targetPassword);
-          return;
-        }
-
-        // Local Storage Fallback if Firebase is not active
-        const stored = localStorage.getItem('logius_registered_users');
-        const registered = stored ? JSON.parse(stored) : [];
-
-        const foundUser = registered.find((u: any) => u.email.toLowerCase() === targetEmail);
-        
-        if (foundUser) {
-          if (password && foundUser.password !== password) {
-            setError('Incorrect wachtwoord voor deze geregistreerde gebruiker.');
+          if (!password) {
+            setError('Vul a.u.b. uw wachtwoord in.');
             setIsLoading(false);
             return;
           }
-          onLoginSuccess(targetEmail, password);
+
+          const targetPassword = password;
+          await loginWithEmailAndRealPassword(targetEmail, targetPassword);
+          
+          // Verify if user is authorized (either global admin or listed in a team)
+          const isAuthorized = await checkAndRestoreUserAccess(targetEmail, targetPassword);
+          if (!isAuthorized) {
+            await logoutUser();
+            setError('Uw account is momenteel niet gekoppeld aan een team of is verwijderd uit het systeem door een teamadmin. Neem contact op met uw teamadmin.');
+            setIsLoading(false);
+            return;
+          }
+          
+          onLoginSuccess(targetEmail, targetPassword);
+          return;
         } else {
-          setError('Dit e-mailadres is niet bekend in deze browser. Gelieve eerst een account te registreren.');
+          setError('Firebase is niet correct geconfigureerd voor de authenticatie.');
         }
       } catch (err: any) {
         console.error("Login push error list:", err);
@@ -149,7 +140,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     try {
       if (isFirebaseConfigured) {
         await sendPasswordReset(targetEmail);
-        setSuccess('Er is een e-mail gestuurd naar u om uw wachtwoord te herstellen!');
+        setSuccess('Er is een herstel-e-mail aangevraagd via Firebase! Controleer direct uw spam/ongewenste e-mailfolder. LET OP: Omdat Firebase systeemmafhandeling via een tijdelijk domein (zoals noreply@...) verloopt, worden deze e-mails soms geblokkeerd of gefilterd door strenge spamfilters. Als u de Firebase-projecteigenaar bent en de mail niet ontvangt, kunt u ook naar de Firebase Console (Authentication) gaan om het wachtwoord handmatig te resetten of het account tijdelijk te verwijderen zodat de auto-create bij inloggen weer werkt.');
       } else {
         // Mock fallback success
         setSuccess(`[Simulatie] Herstellink gestuurd naar ${targetEmail}!`);
@@ -168,7 +159,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 px-6 py-8 text-white relative">
         <div className="absolute top-2 right-3 flex items-center gap-1 bg-white/10 text-white/90 text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm">
           <Info size={11} />
-          <span>Logius.nl Beveiliging</span>
+          <span>Beveiligde Toegang</span>
         </div>
         <div className="flex justify-center mb-2">
           <div className="h-12 w-12 rounded-xl bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
@@ -229,7 +220,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <input
                 id="login-email-input"
                 type="email"
-                placeholder="bv. uw.naam@logius.nl"
+                placeholder="bv. uw.naam@example.nl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-slate-50 hover:bg-slate-50/50 focus:bg-white border border-slate-200 rounded-lg py-2 pl-10 pr-4 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all font-sans"
@@ -237,7 +228,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               />
             </div>
             <p className="text-[10px] text-slate-400 mt-1">
-              Gebruik uw zakelijke e-mailadres om toegang te krijgen tot uw teamgegevens.
+              Gebruik uw geautoriseerde e-mailadres om toegang te krijgen tot uw teamgegevens.
             </p>
           </div>
 
@@ -277,16 +268,12 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             <input
               id="login-password-input"
               type="password"
-              placeholder={isRegister ? "Kies een veilig wachtwoord" : "Voer uw wachtwoord in (optioneel voor demo)"}
+              placeholder={isRegister ? "Kies een veilig wachtwoord" : "Voer uw wachtwoord in"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-slate-50 hover:bg-slate-50/50 focus:bg-white border border-slate-200 rounded-lg py-2 px-4 text-sm text-slate-800 placeholder-slate-400 outline-none focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 transition-all font-sans font-mono"
+              required
             />
-            {!isRegister && (
-              <p className="text-[10px] text-slate-400 mt-1">
-                Demo-gebruikers kunnen inloggen met het standaard wachtwoord of dit leeg laten.
-              </p>
-            )}
           </div>
 
           <button

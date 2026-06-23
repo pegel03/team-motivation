@@ -33,7 +33,7 @@ service cloud.firestore {
     function isGlobalAdmin() {
       return isSignedIn() && (
         (currentUserEmail() != '' && exists(/databases/$(database)/documents/admins/$(currentUserEmail()))) ||
-        currentUserEmail() == "beheer@logius.nl"
+        currentUserEmail() == "beheer@example.nl"
       );
     }
 
@@ -97,6 +97,14 @@ service cloud.firestore {
       );
       allow list: if isSignedIn() && isGlobalAdmin();
       allow write: if isSignedIn() && isGlobalAdmin();
+    }
+
+    // 4. Users collection rules (authentication table)
+    match /users/{email} {
+      allow get: if true;
+      allow create: if true;
+      allow update: if isSignedIn() && (isGlobalAdmin() || currentUserEmail() == email.lower());
+      allow delete: if isSignedIn();
     }
 
     function isValidSubmission(sub) {

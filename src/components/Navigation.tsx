@@ -15,18 +15,18 @@ export default function Navigation({ currentUserEmail, userTeam, onLogout, isGlo
   const displayEmail = isGlobalAdmin ? "Systeembeheerder" : currentUserEmail;
 
   return (
-    <header id="logius-nav-header" className="bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-sm">
+    <header id="main-nav-header" className="bg-white border-b border-slate-200 sticky top-0 z-40 font-sans shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           
           {/* Brand Logo & Identifier */}
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 bg-slate-900 border border-slate-800 text-white rounded-lg flex items-center justify-center font-bold tracking-tight text-base shadow-sm shrink-0 font-mono">
-              L
+              T
             </div>
             <div className="min-w-0">
               <h1 className="font-extrabold text-sm text-slate-900 leading-none tracking-tight flex items-center gap-1.5">
-                <span>LOGIUS</span>
+                <span>TEAM PORTAAL</span>
                 <span className="h-1.5 w-1.5 bg-blue-500 rounded-full" />
               </h1>
               <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">
@@ -86,7 +86,7 @@ export default function Navigation({ currentUserEmail, userTeam, onLogout, isGlo
             <div className="flex items-center gap-2">
               <span className="h-2.5 w-2.5 bg-rose-500 rounded-full animate-ping" />
               <span className="text-xs text-slate-500 font-medium font-sans">
-                Niet ingelogd bij Logius
+                Niet ingelogd
               </span>
             </div>
           )}
