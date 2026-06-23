@@ -509,6 +509,7 @@ export default function App() {
             <AdminPanel 
               teams={teams} 
               onTeamsUpdated={setTeams} 
+              submissions={submissions}
             />
           </div>
         ) : (

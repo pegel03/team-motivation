@@ -1,23 +1,43 @@
-import React, { useState } from 'react';
-import { Team } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Team, Submission } from '../types';
 import { 
-  Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle
+  Users, Plus, Trash2, Edit3, UserPlus, Link, Copy, Check, Shield, UserCheck, UserMinus, AlertCircle,
+  Download, Upload, FileDown, FileUp, Database, RefreshCw
 } from 'lucide-react';
 
-import { saveTeamDoc, deleteTeamDoc, deleteUserDoc } from '../firestoreService';
+import { saveTeamDoc, deleteTeamDoc, deleteUserDoc, addSubmissionDoc } from '../firestoreService';
 
 interface AdminPanelProps {
   teams: Team[];
   onTeamsUpdated: (updatedTeams: Team[]) => void;
+  submissions: Submission[];
 }
 
-export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
+export default function AdminPanel({ teams, onTeamsUpdated, submissions }: AdminPanelProps) {
   // CRUD states
   const [newTeamName, setNewTeamName] = useState('');
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [editingTeamName, setEditingTeamName] = useState('');
   const [newMemberEmail, setNewMemberEmail] = useState<Record<string, string>>({}); // teamId -> text
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  // Backup & Restore states
+  const [selectedBackupTeamId, setSelectedBackupTeamId] = useState<string>('');
+  const [restorableBackup, setRestorableBackup] = useState<{
+    team: Team;
+    submissions: Submission[];
+    fileName: string;
+  } | null>(null);
+  const [restoreStatus, setRestoreStatus] = useState<string>('');
+  const [isRestoring, setIsRestoring] = useState(false);
+
+  // Preset to team-mpygro7b (NotOrious) if found, otherwise first team
+  useEffect(() => {
+    if (teams.length > 0) {
+      const targetTeam = teams.find(t => t.id === 'team-mpygro7b') || teams[0];
+      setSelectedBackupTeamId(targetTeam.id);
+    }
+  }, [teams]);
 
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +192,106 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
         });
     } else {
       fallbackCopyText(shareUrl, teamId);
+    }
+  };
+
+  const handleDownloadBackup = (teamId: string) => {
+    const team = teams.find(t => t.id === teamId);
+    if (!team) {
+      alert("Kies een geldig team om reresultaten van te back-uppen.");
+      return;
+    }
+    const teamSubmissions = submissions.filter(s => s.teamId === teamId);
+    
+    const backupData = {
+      backupType: 'team_survey_backup_v1',
+      backupDate: new Date().toISOString(),
+      team: {
+        id: team.id,
+        name: team.name,
+        memberEmails: team.memberEmails || [],
+        teamAdminEmails: team.teamAdminEmails || [],
+        dashboardActive: team.dashboardActive || false,
+        sessions: team.sessions || [],
+        activeSessionId: team.activeSessionId || null,
+        activeViewSessionId: team.activeViewSessionId || null
+      },
+      submissions: teamSubmissions
+    };
+    
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup-${team.name.replace(/\s+/g, '_')}-${teamId}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleRestoreFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        const backup = JSON.parse(content);
+        
+        if (backup.backupType !== 'team_survey_backup_v1' || !backup.team || !backup.team.id) {
+          alert("Fout: Dit bestand is geen geldige team-enquête back-up.");
+          return;
+        }
+        
+        setRestorableBackup({
+          team: backup.team,
+          submissions: backup.submissions || [],
+          fileName: file.name
+        });
+        setRestoreStatus('');
+      } catch (err) {
+        console.error(err);
+        alert("Fout bij het parsen van het back-upbestand.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleExecuteRestore = async () => {
+    if (!restorableBackup) return;
+    setIsRestoring(true);
+    setRestoreStatus('Bezig met opslaan van teamgegevens in database...');
+    
+    try {
+      const { team, submissions: subs } = restorableBackup;
+      
+      // Save Team
+      await saveTeamDoc(team);
+      
+      setRestoreStatus(`Team "${team.name}" succesvol hersteld. Nu bezig met het wegschrijven van ${subs.length} historische antwoorden...`);
+      
+      // Restore each submission
+      let count = 0;
+      for (const sub of subs) {
+        await addSubmissionDoc(sub, team);
+        count++;
+        setRestoreStatus(`Bezig met herstellen van antwoorden: ${count} van ${subs.length}...`);
+      }
+      
+      setRestoreStatus(`Gereed! Team "${team.name}" en al haar ${subs.length} historische antwoorden zijn succesvol teruggezet.`);
+      setRestorableBackup(null);
+      
+      // Reset file input
+      const fileInput = document.getElementById('restore-file-input') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      console.error(err);
+      setRestoreStatus(`Fout tijdens herstellen: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -427,6 +547,121 @@ export default function AdminPanel({ teams, onTeamsUpdated }: AdminPanelProps) {
         )}
       </div>
 
+      {/* Back-up & Herstel Systeem */}
+      <div id="backup-restore-section" className="bg-white border border-slate-200 rounded-2xl p-6 shadow-md space-y-6">
+        <div className="border-b border-slate-100 pb-4">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+            <Database size={18} className="text-indigo-600" />
+            <span>Back-up & Herstel Enquête-sessies</span>
+          </h3>
+          <p className="text-xs text-slate-500 mt-1">
+            Exporteer een team en al haar historische stemresultaten naar een lokaal JSON-bestand, of herstel een eerder gemaakt back-upbestand in de database.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Linker paneel: Back-up exporteren */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <FileDown size={16} className="text-indigo-600" />
+              <span>1. Back-up Exporteren</span>
+            </h4>
+            
+            <div className="space-y-3 bg-slate-50 border border-slate-200/60 rounded-xl p-4">
+              <label htmlFor="backup-team-select" className="block text-xs font-semibold text-slate-600">Selecteer Team:</label>
+              <select
+                id="backup-team-select"
+                value={selectedBackupTeamId}
+                onChange={(e) => setSelectedBackupTeamId(e.target.value)}
+                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-indigo-600 transition-all font-sans"
+              >
+                {teams.length === 0 ? (
+                  <option value="">Geen actieve teams beschikbaar</option>
+                ) : (
+                  teams.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} (ID: {t.id})
+                    </option>
+                  ))
+                )}
+              </select>
+
+              {/* Stats van geselecteerde team */}
+              {selectedBackupTeamId && (
+                <div className="bg-white border border-slate-100 rounded-lg p-2.5 text-[11px] text-slate-500 space-y-1">
+                  <div>Leden: <strong className="text-slate-800">{(teams.find(t => t.id === selectedBackupTeamId)?.memberEmails || []).length}</strong></div>
+                  <div>Gevonden historische antwoorden: <strong className="text-slate-800">{submissions.filter(s => s.teamId === selectedBackupTeamId).length}</strong></div>
+                </div>
+              )}
+
+              <button
+                id="download-backup-btn"
+                disabled={!selectedBackupTeamId}
+                onClick={() => handleDownloadBackup(selectedBackupTeamId)}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download size={14} />
+                <span>Download backup als lokaal bestand</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Rechter paneel: Back-up herstellen */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <FileUp size={16} className="text-indigo-600" />
+              <span>2. Back-up Herstellen</span>
+            </h4>
+
+            <div className="space-y-4 bg-slate-50 border border-slate-200/60 rounded-xl p-4">
+              <div className="space-y-1.5">
+                <label htmlFor="restore-file-input" className="block text-xs font-semibold text-slate-600">Selecteer Back-upbestand (.json):</label>
+                <input
+                  id="restore-file-input"
+                  type="file"
+                  accept=".json"
+                  onChange={handleRestoreFileChange}
+                  className="w-full text-xs font-sans text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 file:cursor-pointer cursor-value border border-slate-200/60 rounded-lg p-1 bg-white"
+                />
+              </div>
+
+              {/* Overzicht van de te herstellen back-up */}
+              {restorableBackup && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 space-y-2 text-xs text-emerald-900">
+                  <div className="font-bold flex items-center gap-1">
+                    <Check size={14} className="text-emerald-600" />
+                    <span>Klaar voor herstel:</span>
+                  </div>
+                  <div className="pl-4 space-y-1 text-[11px]">
+                    <div>Bestand: <span className="font-mono text-slate-600">{restorableBackup.fileName}</span></div>
+                    <div>Teamnaam: <strong className="text-slate-800">{restorableBackup.team.name}</strong></div>
+                    <div>Team-ID: <span className="font-mono text-slate-600">{restorableBackup.team.id}</span></div>
+                    <div>Aantal stemmen / antwoorden: <strong className="text-slate-800">{restorableBackup.submissions.length} stuks</strong></div>
+                  </div>
+
+                  <button
+                    id="execute-restore-btn"
+                    onClick={handleExecuteRestore}
+                    disabled={isRestoring}
+                    className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 transition-all shadow-sm"
+                  >
+                    {isRestoring ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                    <span>Herstel database nu starten</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Statusrapportage */}
+              {restoreStatus && (
+                <div id="restore-status-alert" className="p-3 bg-indigo-50 border border-indigo-100 text-indigo-900 rounded-lg text-[11px] leading-relaxed font-semibold flex gap-2 items-start animate-fade-in">
+                  <span className="h-1.5 w-1.5 bg-indigo-600 rounded-full mt-1.5 animate-ping shrink-0" />
+                  <p>{restoreStatus}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
     </div>
   );

@@ -82,8 +82,12 @@ service cloud.firestore {
       
       allow create: if isSignedIn() 
         && isValidSubmission(incoming()) 
-        && incoming().userEmail == request.auth.token.email
-        && exists(/databases/$(database)/documents/teams/$(incoming().teamId));
+        && (
+          isGlobalAdmin() || (
+            incoming().userEmail == request.auth.token.email
+            && exists(/databases/$(database)/documents/teams/$(incoming().teamId))
+          )
+        );
         
       allow update: if false; // Submissions are immutable
       allow delete: if isSignedIn() && isGlobalAdmin();
