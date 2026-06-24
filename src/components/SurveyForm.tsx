@@ -294,7 +294,7 @@ export default function SurveyForm({
                 >
                   <div className="flex items-start gap-4">
                     {/* Index label */}
-                    <div className="h-6 w-6 rounded-full bg-slate-900 border border-slate-800 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                    <div className="h-6 w-6 rounded-full bg-indigo-600 border border-indigo-700 text-white font-mono font-bold text-xs flex items-center justify-center shrink-0">
                       {index + 1}
                     </div>
                     
@@ -329,7 +329,7 @@ export default function SurveyForm({
                                 onClick={() => handleSelectScore(question.id, num)}
                                 className={`flex-1 aspect-square sm:aspect-auto sm:py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer flex flex-col items-center justify-center ${
                                   isChosen
-                                    ? 'bg-slate-900 border-slate-900 text-white shadow-md'
+                                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-md hover:bg-indigo-700'
                                     : isSkipped 
                                       ? 'bg-slate-50 border-slate-100 text-slate-300 pointer-events-none'
                                       : 'bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-600 hover:bg-slate-100/70'
@@ -359,7 +359,7 @@ export default function SurveyForm({
             <button
               id="submit-survey-form-btn"
               type="submit"
-              className="bg-slate-900 border border-slate-800 text-white font-semibold py-2 px-6 rounded-lg text-sm hover:bg-slate-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+              className="bg-indigo-600 border border-indigo-700 text-white font-semibold py-2 px-6 rounded-lg text-sm hover:bg-indigo-700 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
             >
               <span>Response opslaan</span>
               <ChevronRight size={14} />

@@ -277,7 +277,7 @@ export default function TeamDashboard({
                   <button
                     id="btn-close-session"
                     onClick={handleCloseSession}
-                    className="w-full text-center bg-slate-900 border border-slate-800 text-white font-bold py-2 px-4 rounded-lg text-xs hover:bg-slate-800 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                    className="w-full text-center bg-indigo-600 border border-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs hover:bg-indigo-700 transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
                   >
                     <CheckCircle2 size={13} />
                     <span>Sessie handmatig sluiten & publiceren</span>

@@ -442,7 +442,7 @@ export default function App() {
               </span>
               <button 
                 onClick={() => window.location.reload()}
-                className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 hover:shadow-md"
+                className="w-full sm:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 border border-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 hover:shadow-md"
               >
                 Opnieuw controleren
                 <ChevronRight size={14} />
@@ -680,7 +680,7 @@ export default function App() {
                           <button
                             id="self-save-team-name-btn"
                             onClick={handleSelfSaveTeamName}
-                            className="bg-slate-900 text-white border border-slate-800 rounded-lg px-4 py-2 text-xs font-bold hover:bg-slate-800 cursor-pointer"
+                            className="bg-indigo-600 text-white border border-indigo-700 rounded-lg px-4 py-2 text-xs font-bold hover:bg-indigo-700 cursor-pointer"
                           >
                             Naam Opslaan
                           </button>

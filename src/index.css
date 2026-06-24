@@ -1,1 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Spruce Forest Theme replacing the Slate scale */
+  --color-slate-50: #0a1110;      /* Pure dark spruce/forest page background */
+  --color-slate-100: #12211e;     /* Sub-elements / lighter page elements */
+  --color-slate-200: #1b2f2b;     /* Primary thin borders */
+  --color-slate-300: #26433d;     /* Stronger borders / interactive controls */
+  --color-slate-400: #4a776e;     /* Inactive elements / muted labels */
+  --color-slate-500: #6d9c92;     /* Medium-muted text */
+  --color-slate-600: #8dafa8;     /* Secondary details */
+  --color-slate-700: #b0cac3;     /* Main paragraph text (high-contrast sage-tint) */
+  --color-slate-800: #daf0eb;     /* Clear headings / secondary text */
+  --color-slate-900: #f0fdfa;     /* Brightest titles (near-white mint) */
+
+  /* Sustainable Vibrant Mint/Emerald replacing the Indigo scale */
+  --color-indigo-50: #0d241f;     /* Tiny tinted notification backgrounds */
+  --color-indigo-100: #143d34;    /* Light tinted borders */
+  --color-indigo-200: #1c5246;    /* Soft focus states */
+  --color-indigo-300: #297463;
+  --color-indigo-400: #14b8a6;    /* Bright teal */
+  --color-indigo-500: #10b981;    /* Vibrant emerald mint */
+  --color-indigo-600: #059669;    /* Primary brand/action buttons */
+  --color-indigo-700: #34d399;    /* Bright active text / active tab highlight */
+  --color-indigo-800: #6ee7b7;    /* Light mint accent */
+  --color-indigo-900: #a7f3d0;    /* Muted pale mint */
+  --color-indigo-950: #ecfdf5;    /* High-contrast mint highlight text */
+
+  /* Modern Eco-emerald palette for success states */
+  --color-emerald-50: #0e2a22;
+  --color-emerald-100: #153d31;
+  --color-emerald-200: #1c4d3f;
+  --color-emerald-300: #2b7762;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065f46;
+  --color-emerald-950: #022c22;
+
+  /* Terra-Cotta / Rose for warning & failing scores */
+  --color-rose-50: #2d1618;
+  --color-rose-100: #421e21;
+  --color-rose-200: #642d32;
+  --color-rose-500: #f43f5e;
+  --color-rose-600: #e11d48;
+  --color-rose-700: #fda4af;
+
+  /* Red warnings */
+  --color-red-50: #2f1214;
+  --color-red-100: #47191c;
+  --color-red-700: #fca5a5;
+
+  /* Custom amber for pending actions or medium scores */
+  --color-amber-50: #262112;
+  --color-amber-100: #3d3419;
+  --color-amber-200: #5c4e21;
+  --color-amber-500: #f59e0b;
+  --color-amber-600: #d97706;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde047;
+}
+
+/* Global Reset to dark forest canvas */
+body {
+  background-color: #0a1110;
+  color: #daf0eb;
+}
+
+/* Override bg-white specifically to create a dark spruce container card, while allowing text-white to remain pure white */
+.bg-white {
+  background-color: #0f1c1a !important;
+}
+
+/* Input elements: ensure dropdown select options have deep forest backgrounds and crisp mint text */
+select, option, input, textarea {
+  background-color: #0f1c1a;
+  color: #daf0eb;
+}
+
+/* Custom modern scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0a1110;
+}
+::-webkit-scrollbar-thumb {
+  background: #1b2f2b;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #26433d;
+}
+
+/* Ensure that bright slate backgrounds (e.g. slate-900 which is #f0fdfa and slate-800 which is #daf0eb)
+   have high contrast, dark forest text instead of being unreadable white-on-white */
+.bg-slate-900, [class*="bg-slate-900"] {
+  color: #0a1110 !important;
+}
+.bg-slate-900 *, [class*="bg-slate-900"] * {
+  color: #0a1110 !important;
+}
+.bg-slate-800, [class*="bg-slate-800"] {
+  color: #0a1110 !important;
+}
+.bg-slate-800 *, [class*="bg-slate-800"] * {
+  color: #0a1110 !important;
+}
+
+/* Specific styling for alerts to ensure high contrast text on themed dark backgrounds */
+.bg-red-50, [class*="bg-red-50"] {
+  background-color: #2f1214 !important;
+  border-color: #47191c !important;
+}
+.bg-red-50, .bg-red-50 *, [class*="bg-red-50"], [class*="bg-red-50"] * {
+  color: #fca5a5 !important;
+}
+
+.bg-emerald-50, [class*="bg-emerald-50"] {
+  background-color: #0e2a22 !important;
+  border-color: #1c4d3f !important;
+}
+.bg-emerald-50, .bg-emerald-50 *, [class*="bg-emerald-50"], [class*="bg-emerald-50"] * {
+  color: #34d399 !important;
+}
+
+.bg-amber-50, .bg-amber-50\/50, .bg-amber-50\/70, [class*="bg-amber-50"] {
+  background-color: #262112 !important;
+  border-color: #5c4e21 !important;
+}
+.bg-amber-50, .bg-amber-50 *, [class*="bg-amber-50"], [class*="bg-amber-50"] * {
+  color: #fcd34d !important;
+}
+
+.bg-indigo-50, .bg-indigo-50\/50, .bg-indigo-50\/70, [class*="bg-indigo-50"] {
+  background-color: #0d241f !important;
+  border-color: #143d34 !important;
+}
+.bg-indigo-50, .bg-indigo-50 *, [class*="bg-indigo-50"], [class*="bg-indigo-50"] * {
+  color: #6ee7b7 !important;
+}
+
+/* Overriding the login card's visual header to have a deep emerald/spruce gradient with high-contrast text */
+#login-form-card > div:first-child,
+div#login-form-card > div:nth-of-type(1) {
+  background: linear-gradient(135deg, #0a1e1b 0%, #12332c 50%, #0a1e1b 100%) !important;
+}
+#login-form-card > div:first-child *,
+div#login-form-card > div:nth-of-type(1) * {
+  color: #daf0eb !important;
+}
+#login-form-card > div:first-child .text-indigo-200,
+div#login-form-card > div:nth-of-type(1) .text-indigo-200 {
+  color: #a7f3d0 !important;
+}

@@ -333,7 +333,7 @@ export default function AdminPanel({ teams, onTeamsUpdated, submissions }: Admin
           <button
             id="admin-create-team-btn"
             type="submit"
-            className="bg-slate-900 border border-slate-800 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-slate-800 shadow-sm cursor-pointer transition-all flex items-center gap-2"
+            className="bg-indigo-600 border border-indigo-700 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-indigo-700 shadow-sm cursor-pointer transition-all flex items-center gap-2"
           >
             <Plus size={16} />
             <span className="hidden sm:inline">Team toevoegen</span>

@@ -280,7 +280,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             id="login-submit-btn"
             type="submit"
             disabled={isLoading}
-            className="w-full bg-slate-900 border border-slate-800 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-slate-800 cursor-pointer shadow-md transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:border-slate-300 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 border border-indigo-700 text-white py-2.5 px-4 rounded-lg font-semibold text-sm hover:bg-indigo-700 cursor-pointer shadow-md transition-all flex items-center justify-center gap-2 disabled:bg-slate-400 disabled:border-slate-350 disabled:cursor-not-allowed"
           >
             <LogIn size={16} />
             <span>{isLoading ? 'Bezig...' : (isRegister ? 'Account Aanmaken' : 'Veilig Inloggen')}</span>

@@ -27,7 +27,7 @@ export default function Navigation({ currentUserEmail, userTeam, onLogout, isGlo
             <div className="min-w-0">
               <h1 className="font-extrabold text-sm text-slate-900 leading-none tracking-tight flex items-center gap-1.5">
                 <span>TEAM PORTAAL</span>
-                <span className="h-1.5 w-1.5 bg-blue-500 rounded-full" />
+                <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded-md font-mono font-bold leading-none tracking-normal">v1.2.0</span>
               </h1>
               <span className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">
                 Enquête & Dashboard
